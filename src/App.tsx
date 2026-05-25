@@ -76,8 +76,6 @@ export default function App() {
   const [zoom, setZoom] = useState<number>(1);
   const [showSlicesOverlay, setShowSlicesOverlay] = useState<boolean>(true);
   const [lockSlicesOverlay, setLockSlicesOverlay] = useState<boolean>(false);
-  // Macro text pre-loaded from URL hash — passed to the macro panel
-  const [urlMacroText, setUrlMacroText] = useState<string>('');
 
   const activePage = doc.pages.find(p => p.id === doc.currentPageId) || doc.pages[0];
   const activeState = activePage?.states.find(s => s.id === doc.currentStateId) || activePage?.states[0];
@@ -827,49 +825,6 @@ export default function App() {
   };
 
   // On mount: check URL hash for #macro=BASE64_JSON and auto-execute
-  useEffect(() => {
-    const hash = window.location.hash; // e.g. "#macro=eyJzY2hlbWEi..."
-    if (!hash.startsWith('#macro=')) return;
-
-    const encoded = hash.slice('#macro='.length);
-    let jsonString: string;
-    try {
-      jsonString = decodeURIComponent(atob(encoded));
-    } catch {
-      console.warn('[Pyrotechnic] URL hash のマクロをデコードできませんでした');
-      return;
-    }
-
-    let macro: ReturnType<typeof parseMacro>;
-    try {
-      macro = parseMacro(jsonString);
-    } catch (e) {
-      console.warn('[Pyrotechnic] URL hash のマクロが無効です:', (e as Error).message);
-      return;
-    }
-
-    // Always load the JSON into the macro panel textarea
-    const prettyJson = JSON.stringify(macro, null, 2);
-    setUrlMacroText(prettyJson);
-
-    const title = macro.title ? `「${macro.title}」` : '';
-    const confirmed = window.confirm(
-      `URLにマクロ${title}が含まれています。\n` +
-      `コマンド数: ${macro.commands.length}\n\n` +
-      `実行しますか？（現在のキャンバスに反映されます）`
-    );
-
-    if (confirmed) {
-      const newDoc = runMacro(macro, doc);
-      setDoc(newDoc);
-      pushHistory(newDoc);
-    }
-
-    // Remove hash from URL without page reload
-    window.history.replaceState(null, '', window.location.pathname + window.location.search);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // Manage Animation playback frame loop
 
   useEffect(() => {
@@ -1074,7 +1029,6 @@ export default function App() {
           lockSlicesOverlay={lockSlicesOverlay}
           setLockSlicesOverlay={setLockSlicesOverlay}
           onRunMacro={handleRunMacro}
-          initialMacroText={urlMacroText}
         />
       </div>
     </div>

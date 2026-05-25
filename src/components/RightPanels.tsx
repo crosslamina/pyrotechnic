@@ -18,7 +18,7 @@ import {
   Terminal,
   CheckCircle,
   XCircle,
-  Link
+  Info
 } from 'lucide-react';
 import type { Document, Page, State, Layer, CanvasObject } from '../types';
 import { generateCSS } from '../utils/canvasHelper';
@@ -40,8 +40,6 @@ interface RightPanelsProps {
   lockSlicesOverlay: boolean;
   setLockSlicesOverlay: (lock: boolean) => void;
   onRunMacro: (json: string) => { success: boolean; message: string };
-  /** JSON text pre-loaded from URL hash to populate the macro panel */
-  initialMacroText?: string;
 }
 
 export const RightPanels: React.FC<RightPanelsProps> = ({
@@ -59,8 +57,7 @@ export const RightPanels: React.FC<RightPanelsProps> = ({
   setShowSlicesOverlay,
   lockSlicesOverlay,
   setLockSlicesOverlay,
-  onRunMacro,
-  initialMacroText = ''
+  onRunMacro
 }) => {
   // Collapsed states
   const [collapsed, setCollapsed] = useState({
@@ -70,15 +67,6 @@ export const RightPanels: React.FC<RightPanelsProps> = ({
     export: false,
     macro: false
   });
-
-  // Auto-expand macro panel when a URL macro is loaded
-  const prevInitialMacroText = React.useRef('');
-  React.useEffect(() => {
-    if (initialMacroText && initialMacroText !== prevInitialMacroText.current) {
-      prevInitialMacroText.current = initialMacroText;
-      setCollapsed(prev => ({ ...prev, macro: false }));
-    }
-  }, [initialMacroText]);
 
   const toggleCollapse = (panel: keyof typeof collapsed) => {
     setCollapsed(prev => ({ ...prev, [panel]: !prev[panel] }));
@@ -627,7 +615,7 @@ export const RightPanels: React.FC<RightPanelsProps> = ({
         </div>
         {!collapsed.macro && (
           <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <MacroPanel onRunMacro={onRunMacro} initialMacroText={initialMacroText} />
+            <MacroPanel onRunMacro={onRunMacro} />
           </div>
         )}
       </div>
@@ -642,20 +630,11 @@ export const RightPanels: React.FC<RightPanelsProps> = ({
 
 interface MacroPanelProps {
   onRunMacro: (json: string) => { success: boolean; message: string };
-  initialMacroText?: string;
 }
 
-const MacroPanel: React.FC<MacroPanelProps> = ({ onRunMacro, initialMacroText = '' }) => {
-  const [macroText, setMacroText] = useState(initialMacroText);
+const MacroPanel: React.FC<MacroPanelProps> = ({ onRunMacro }) => {
+  const [macroText, setMacroText] = useState('');
   const [status, setStatus] = useState<{ success: boolean; message: string; info?: boolean } | null>(null);
-
-  // Sync textarea when initialMacroText changes (e.g. loaded from URL)
-  React.useEffect(() => {
-    if (initialMacroText) {
-      setMacroText(initialMacroText);
-      setStatus({ success: true, info: true, message: 'URLからマクロを読み込みました。内容を確認して「▶ 実行」してください。' });
-    }
-  }, [initialMacroText]);
 
   const handleRun = () => {
     if (!macroText.trim()) {
@@ -684,21 +663,1082 @@ const MacroPanel: React.FC<MacroPanelProps> = ({ onRunMacro, initialMacroText = 
   const handleLoadExample = () => {
     const example = {
       schema: "1.0",
-      title: "OGPデフォルト画像",
-      description: "1200x630のOGP画像テンプレート",
+      title: "Pyrotechnic Official OGP Image (with Fireworks)",
+      description: "Pyrotechnicツール自身で作成する、花火装飾つき公式OGPイメージです。",
       commands: [
-        { command: "set_canvas", width: 1200, height: 630 },
-        { command: "clear_canvas" },
-        { command: "add_rect", x: 0, y: 0, width: 1200, height: 630, fill: "#0f172a" },
-        { command: "add_ellipse", cx: 1050, cy: 150, rx: 280, ry: 280, fill: "#1e1b4b", opacity: 60 },
-        { command: "add_text", x: 80, y: 220, width: 1040, height: 100,
-          text: "キャッチコピーをここに入力", fontSize: 64, fontFamily: "Outfit",
-          fontWeight: "bold", fill: "#f59e0b", textAlign: "center" },
-        { command: "add_text", x: 80, y: 360, width: 1040, height: 60,
-          text: "サブタイトルやドメイン名など", fontSize: 32, fontFamily: "Outfit",
-          fill: "#94a3b8", textAlign: "center" },
-        { command: "add_slice", x: 0, y: 0, width: 1200, height: 630,
-          name: "ogp_image", format: "png" }
+        {
+          command: "set_canvas",
+          width: 1200,
+          height: 630,
+          name: "Pyrotechnic OGP"
+        },
+        {
+          command: "clear_canvas"
+        },
+        {
+          command: "add_rect",
+          x: 0,
+          y: 0,
+          width: 1200,
+          height: 630,
+          fill: "#05070f"
+        },
+        
+        // --- SLEEK BACKGROUND GLOWS ---
+        {
+          command: "add_ellipse",
+          cx: 300,
+          cy: 300,
+          rx: 250,
+          ry: 250,
+          fill: "#3b0764",
+          opacity: 25
+        },
+        {
+          command: "add_ellipse",
+          cx: 900,
+          cy: 300,
+          rx: 300,
+          ry: 300,
+          fill: "#1e1b4b",
+          opacity: 35
+        },
+        {
+          command: "add_ellipse",
+          cx: 600,
+          cy: 100,
+          rx: 150,
+          ry: 150,
+          fill: "#eab308",
+          opacity: 8
+        },
+
+        // --- SUBTLE DESIGN GRID ---
+        { "command": "add_line", "x1": 100, "y1": 0, "x2": 100, "y2": 630, "stroke": "#ffffff", "strokeWidth": 1, "opacity": 4 },
+        { "command": "add_line", "x1": 200, "y1": 0, "x2": 200, "y2": 630, "stroke": "#ffffff", "strokeWidth": 1, "opacity": 4 },
+        { "command": "add_line", "x1": 300, "y1": 0, "x2": 300, "y2": 630, "stroke": "#ffffff", "strokeWidth": 1, "opacity": 4 },
+        { "command": "add_line", "x1": 400, "y1": 0, "x2": 400, "y2": 630, "stroke": "#ffffff", "strokeWidth": 1, "opacity": 4 },
+        { "command": "add_line", "x1": 500, "y1": 0, "x2": 500, "y2": 630, "stroke": "#ffffff", "strokeWidth": 1, "opacity": 4 },
+        { "command": "add_line", "x1": 600, "y1": 0, "x2": 600, "y2": 630, "stroke": "#ffffff", "strokeWidth": 1, "opacity": 4 },
+        { "command": "add_line", "x1": 700, "y1": 0, "x2": 700, "y2": 630, "stroke": "#ffffff", "strokeWidth": 1, "opacity": 4 },
+        { "command": "add_line", "x1": 800, "y1": 0, "x2": 800, "y2": 630, "stroke": "#ffffff", "strokeWidth": 1, "opacity": 4 },
+        { "command": "add_line", "x1": 900, "y1": 0, "x2": 900, "y2": 630, "stroke": "#ffffff", "strokeWidth": 1, "opacity": 4 },
+        { "command": "add_line", "x1": 1000, "y1": 0, "x2": 1000, "y2": 630, "stroke": "#ffffff", "strokeWidth": 1, "opacity": 4 },
+        { "command": "add_line", "x1": 1100, "y1": 0, "x2": 1100, "y2": 630, "stroke": "#ffffff", "strokeWidth": 1, "opacity": 4 },
+
+        { "command": "add_line", "x1": 0, "y1": 100, "x2": 1200, "y2": 100, "stroke": "#ffffff", "strokeWidth": 1, "opacity": 4 },
+        { "command": "add_line", "x1": 0, "y1": 200, "x2": 1200, "y2": 200, "stroke": "#ffffff", "strokeWidth": 1, "opacity": 4 },
+        { "command": "add_line", "x1": 0, "y1": 300, "x2": 1200, "y2": 300, "stroke": "#ffffff", "strokeWidth": 1, "opacity": 4 },
+        { "command": "add_line", "x1": 0, "y1": 400, "x2": 1200, "y2": 400, "stroke": "#ffffff", "strokeWidth": 1, "opacity": 4 },
+        { "command": "add_line", "x1": 0, "y1": 500, "x2": 1200, "y2": 500, "stroke": "#ffffff", "strokeWidth": 1, "opacity": 4 },
+        { "command": "add_line", "x1": 0, "y1": 600, "x2": 1200, "y2": 600, "stroke": "#ffffff", "strokeWidth": 1, "opacity": 4 },
+
+        // --- GRID INTERSECTION DOTS ---
+        { "command": "add_ellipse", "cx": 300, "cy": 200, "rx": 3, "ry": 3, "fill": "#38bdf8", "opacity": 25 },
+        { "command": "add_ellipse", "cx": 600, "cy": 200, "rx": 3, "ry": 3, "fill": "#38bdf8", "opacity": 25 },
+        { "command": "add_ellipse", "cx": 900, "cy": 200, "rx": 3, "ry": 3, "fill": "#38bdf8", "opacity": 25 },
+        { "command": "add_ellipse", "cx": 300, "cy": 400, "rx": 3, "ry": 3, "fill": "#38bdf8", "opacity": 25 },
+        { "command": "add_ellipse", "cx": 600, "cy": 400, "rx": 3, "ry": 3, "fill": "#38bdf8", "opacity": 25 },
+        { "command": "add_ellipse", "cx": 900, "cy": 400, "rx": 3, "ry": 3, "fill": "#38bdf8", "opacity": 25 },
+
+        // --- FIREWORKS: GOLD (Center: 920, 220) ---
+        {
+          "command": "add_ellipse",
+          "cx": 920,
+          "cy": 220,
+          "rx": 33,
+          "ry": 33,
+          "fill": "#fbbf24",
+          "opacity": 25
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 920,
+          "cy": 220,
+          "rx": 5,
+          "ry": 5,
+          "fill": "#ffffff"
+        },
+        {
+          "command": "add_line",
+          "x1": 937,
+          "y1": 220,
+          "x2": 1008,
+          "y2": 220,
+          "stroke": "#fbbf24",
+          "strokeWidth": 2,
+          "opacity": 80
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 1008,
+          "cy": 220,
+          "rx": 3,
+          "ry": 3,
+          "fill": "#ffffff"
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 1008,
+          "cy": 220,
+          "rx": 7,
+          "ry": 7,
+          "fill": "#fbbf24",
+          "opacity": 30
+        },
+        {
+          "command": "add_line",
+          "x1": 934,
+          "y1": 228,
+          "x2": 996,
+          "y2": 264,
+          "stroke": "#fbbf24",
+          "strokeWidth": 2,
+          "opacity": 80
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 996,
+          "cy": 264,
+          "rx": 3,
+          "ry": 3,
+          "fill": "#ffffff"
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 996,
+          "cy": 264,
+          "rx": 7,
+          "ry": 7,
+          "fill": "#fbbf24",
+          "opacity": 30
+        },
+        {
+          "command": "add_line",
+          "x1": 928,
+          "y1": 234,
+          "x2": 964,
+          "y2": 296,
+          "stroke": "#fbbf24",
+          "strokeWidth": 2,
+          "opacity": 80
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 964,
+          "cy": 296,
+          "rx": 3,
+          "ry": 3,
+          "fill": "#ffffff"
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 964,
+          "cy": 296,
+          "rx": 7,
+          "ry": 7,
+          "fill": "#fbbf24",
+          "opacity": 30
+        },
+        {
+          "command": "add_line",
+          "x1": 920,
+          "y1": 237,
+          "x2": 920,
+          "y2": 308,
+          "stroke": "#fbbf24",
+          "strokeWidth": 2,
+          "opacity": 80
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 920,
+          "cy": 308,
+          "rx": 3,
+          "ry": 3,
+          "fill": "#ffffff"
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 920,
+          "cy": 308,
+          "rx": 7,
+          "ry": 7,
+          "fill": "#fbbf24",
+          "opacity": 30
+        },
+        {
+          "command": "add_line",
+          "x1": 912,
+          "y1": 234,
+          "x2": 876,
+          "y2": 296,
+          "stroke": "#fbbf24",
+          "strokeWidth": 2,
+          "opacity": 80
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 876,
+          "cy": 296,
+          "rx": 3,
+          "ry": 3,
+          "fill": "#ffffff"
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 876,
+          "cy": 296,
+          "rx": 7,
+          "ry": 7,
+          "fill": "#fbbf24",
+          "opacity": 30
+        },
+        {
+          "command": "add_line",
+          "x1": 906,
+          "y1": 228,
+          "x2": 844,
+          "y2": 264,
+          "stroke": "#fbbf24",
+          "strokeWidth": 2,
+          "opacity": 80
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 844,
+          "cy": 264,
+          "rx": 3,
+          "ry": 3,
+          "fill": "#ffffff"
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 844,
+          "cy": 264,
+          "rx": 7,
+          "ry": 7,
+          "fill": "#fbbf24",
+          "opacity": 30
+        },
+        {
+          "command": "add_line",
+          "x1": 904,
+          "y1": 220,
+          "x2": 832,
+          "y2": 220,
+          "stroke": "#fbbf24",
+          "strokeWidth": 2,
+          "opacity": 80
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 832,
+          "cy": 220,
+          "rx": 3,
+          "ry": 3,
+          "fill": "#ffffff"
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 832,
+          "cy": 220,
+          "rx": 7,
+          "ry": 7,
+          "fill": "#fbbf24",
+          "opacity": 30
+        },
+        {
+          "command": "add_line",
+          "x1": 906,
+          "y1": 212,
+          "x2": 844,
+          "y2": 176,
+          "stroke": "#fbbf24",
+          "strokeWidth": 2,
+          "opacity": 80
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 844,
+          "cy": 176,
+          "rx": 3,
+          "ry": 3,
+          "fill": "#ffffff"
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 844,
+          "cy": 176,
+          "rx": 7,
+          "ry": 7,
+          "fill": "#fbbf24",
+          "opacity": 30
+        },
+        {
+          "command": "add_line",
+          "x1": 912,
+          "y1": 206,
+          "x2": 876,
+          "y2": 144,
+          "stroke": "#fbbf24",
+          "strokeWidth": 2,
+          "opacity": 80
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 876,
+          "cy": 144,
+          "rx": 3,
+          "ry": 3,
+          "fill": "#ffffff"
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 876,
+          "cy": 144,
+          "rx": 7,
+          "ry": 7,
+          "fill": "#fbbf24",
+          "opacity": 30
+        },
+        {
+          "command": "add_line",
+          "x1": 920,
+          "y1": 204,
+          "x2": 920,
+          "y2": 132,
+          "stroke": "#fbbf24",
+          "strokeWidth": 2,
+          "opacity": 80
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 920,
+          "cy": 132,
+          "rx": 3,
+          "ry": 3,
+          "fill": "#ffffff"
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 920,
+          "cy": 132,
+          "rx": 7,
+          "ry": 7,
+          "fill": "#fbbf24",
+          "opacity": 30
+        },
+        {
+          "command": "add_line",
+          "x1": 928,
+          "y1": 206,
+          "x2": 964,
+          "y2": 144,
+          "stroke": "#fbbf24",
+          "strokeWidth": 2,
+          "opacity": 80
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 964,
+          "cy": 144,
+          "rx": 3,
+          "ry": 3,
+          "fill": "#ffffff"
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 964,
+          "cy": 144,
+          "rx": 7,
+          "ry": 7,
+          "fill": "#fbbf24",
+          "opacity": 30
+        },
+        {
+          "command": "add_line",
+          "x1": 934,
+          "y1": 212,
+          "x2": 996,
+          "y2": 176,
+          "stroke": "#fbbf24",
+          "strokeWidth": 2,
+          "opacity": 80
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 996,
+          "cy": 176,
+          "rx": 3,
+          "ry": 3,
+          "fill": "#ffffff"
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 996,
+          "cy": 176,
+          "rx": 7,
+          "ry": 7,
+          "fill": "#fbbf24",
+          "opacity": 30
+        },
+
+        // --- FIREWORKS: PURPLE (Center: 1050, 390) ---
+        {
+          "command": "add_ellipse",
+          "cx": 1050,
+          "cy": 390,
+          "rx": 24,
+          "ry": 24,
+          "fill": "#a78bfa",
+          "opacity": 25
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 1050,
+          "cy": 390,
+          "rx": 5,
+          "ry": 5,
+          "fill": "#ffffff"
+        },
+        {
+          "command": "add_line",
+          "x1": 1062,
+          "y1": 390,
+          "x2": 1114,
+          "y2": 390,
+          "stroke": "#a78bfa",
+          "strokeWidth": 2,
+          "opacity": 80
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 1114,
+          "cy": 390,
+          "rx": 3,
+          "ry": 3,
+          "fill": "#ffffff"
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 1114,
+          "cy": 390,
+          "rx": 7,
+          "ry": 7,
+          "fill": "#a78bfa",
+          "opacity": 30
+        },
+        {
+          "command": "add_line",
+          "x1": 1060,
+          "y1": 397,
+          "x2": 1102,
+          "y2": 428,
+          "stroke": "#a78bfa",
+          "strokeWidth": 2,
+          "opacity": 80
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 1102,
+          "cy": 428,
+          "rx": 3,
+          "ry": 3,
+          "fill": "#ffffff"
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 1102,
+          "cy": 428,
+          "rx": 7,
+          "ry": 7,
+          "fill": "#a78bfa",
+          "opacity": 30
+        },
+        {
+          "command": "add_line",
+          "x1": 1054,
+          "y1": 401,
+          "x2": 1070,
+          "y2": 451,
+          "stroke": "#a78bfa",
+          "strokeWidth": 2,
+          "opacity": 80
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 1070,
+          "cy": 451,
+          "rx": 3,
+          "ry": 3,
+          "fill": "#ffffff"
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 1070,
+          "cy": 451,
+          "rx": 7,
+          "ry": 7,
+          "fill": "#a78bfa",
+          "opacity": 30
+        },
+        {
+          "command": "add_line",
+          "x1": 1046,
+          "y1": 401,
+          "x2": 1030,
+          "y2": 451,
+          "stroke": "#a78bfa",
+          "strokeWidth": 2,
+          "opacity": 80
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 1030,
+          "cy": 451,
+          "rx": 3,
+          "ry": 3,
+          "fill": "#ffffff"
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 1030,
+          "cy": 451,
+          "rx": 7,
+          "ry": 7,
+          "fill": "#a78bfa",
+          "opacity": 30
+        },
+        {
+          "command": "add_line",
+          "x1": 1040,
+          "y1": 397,
+          "x2": 998,
+          "y2": 428,
+          "stroke": "#a78bfa",
+          "strokeWidth": 2,
+          "opacity": 80
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 998,
+          "cy": 428,
+          "rx": 3,
+          "ry": 3,
+          "fill": "#ffffff"
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 998,
+          "cy": 428,
+          "rx": 7,
+          "ry": 7,
+          "fill": "#a78bfa",
+          "opacity": 30
+        },
+        {
+          "command": "add_line",
+          "x1": 1038,
+          "y1": 390,
+          "x2": 986,
+          "y2": 390,
+          "stroke": "#a78bfa",
+          "strokeWidth": 2,
+          "opacity": 80
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 986,
+          "cy": 390,
+          "rx": 3,
+          "ry": 3,
+          "fill": "#ffffff"
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 986,
+          "cy": 390,
+          "rx": 7,
+          "ry": 7,
+          "fill": "#a78bfa",
+          "opacity": 30
+        },
+        {
+          "command": "add_line",
+          "x1": 1040,
+          "y1": 383,
+          "x2": 998,
+          "y2": 352,
+          "stroke": "#a78bfa",
+          "strokeWidth": 2,
+          "opacity": 80
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 998,
+          "cy": 352,
+          "rx": 3,
+          "ry": 3,
+          "fill": "#ffffff"
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 998,
+          "cy": 352,
+          "rx": 7,
+          "ry": 7,
+          "fill": "#a78bfa",
+          "opacity": 30
+        },
+        {
+          "command": "add_line",
+          "x1": 1046,
+          "y1": 379,
+          "x2": 1030,
+          "y2": 329,
+          "stroke": "#a78bfa",
+          "strokeWidth": 2,
+          "opacity": 80
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 1030,
+          "cy": 329,
+          "rx": 3,
+          "ry": 3,
+          "fill": "#ffffff"
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 1030,
+          "cy": 329,
+          "rx": 7,
+          "ry": 7,
+          "fill": "#a78bfa",
+          "opacity": 30
+        },
+        {
+          "command": "add_line",
+          "x1": 1054,
+          "y1": 379,
+          "x2": 1070,
+          "y2": 329,
+          "stroke": "#a78bfa",
+          "strokeWidth": 2,
+          "opacity": 80
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 1070,
+          "cy": 329,
+          "rx": 3,
+          "ry": 3,
+          "fill": "#ffffff"
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 1070,
+          "cy": 329,
+          "rx": 7,
+          "ry": 7,
+          "fill": "#a78bfa",
+          "opacity": 30
+        },
+        {
+          "command": "add_line",
+          "x1": 1060,
+          "y1": 383,
+          "x2": 1102,
+          "y2": 352,
+          "stroke": "#a78bfa",
+          "strokeWidth": 2,
+          "opacity": 80
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 1102,
+          "cy": 352,
+          "rx": 3,
+          "ry": 3,
+          "fill": "#ffffff"
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 1102,
+          "cy": 352,
+          "rx": 7,
+          "ry": 7,
+          "fill": "#a78bfa",
+          "opacity": 30
+        },
+
+        // --- FIREWORKS: TEAL (Center: 740, 160) ---
+        {
+          "command": "add_ellipse",
+          "cx": 740,
+          "cy": 160,
+          "rx": 20,
+          "ry": 20,
+          "fill": "#2dd4bf",
+          "opacity": 25
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 740,
+          "cy": 160,
+          "rx": 5,
+          "ry": 5,
+          "fill": "#ffffff"
+        },
+        {
+          "command": "add_line",
+          "x1": 750,
+          "y1": 160,
+          "x2": 792,
+          "y2": 160,
+          "stroke": "#2dd4bf",
+          "strokeWidth": 2,
+          "opacity": 80
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 792,
+          "cy": 160,
+          "rx": 3,
+          "ry": 3,
+          "fill": "#ffffff"
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 792,
+          "cy": 160,
+          "rx": 7,
+          "ry": 7,
+          "fill": "#2dd4bf",
+          "opacity": 30
+        },
+        {
+          "command": "add_line",
+          "x1": 747,
+          "y1": 167,
+          "x2": 777,
+          "y2": 197,
+          "stroke": "#2dd4bf",
+          "strokeWidth": 2,
+          "opacity": 80
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 777,
+          "cy": 197,
+          "rx": 3,
+          "ry": 3,
+          "fill": "#ffffff"
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 777,
+          "cy": 197,
+          "rx": 7,
+          "ry": 7,
+          "fill": "#2dd4bf",
+          "opacity": 30
+        },
+        {
+          "command": "add_line",
+          "x1": 740,
+          "y1": 170,
+          "x2": 740,
+          "y2": 212,
+          "stroke": "#2dd4bf",
+          "strokeWidth": 2,
+          "opacity": 80
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 740,
+          "cy": 212,
+          "rx": 3,
+          "ry": 3,
+          "fill": "#ffffff"
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 740,
+          "cy": 212,
+          "rx": 7,
+          "ry": 7,
+          "fill": "#2dd4bf",
+          "opacity": 30
+        },
+        {
+          "command": "add_line",
+          "x1": 733,
+          "y1": 167,
+          "x2": 703,
+          "y2": 197,
+          "stroke": "#2dd4bf",
+          "strokeWidth": 2,
+          "opacity": 80
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 703,
+          "cy": 197,
+          "rx": 3,
+          "ry": 3,
+          "fill": "#ffffff"
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 703,
+          "cy": 197,
+          "rx": 7,
+          "ry": 7,
+          "fill": "#2dd4bf",
+          "opacity": 30
+        },
+        {
+          "command": "add_line",
+          "x1": 730,
+          "y1": 160,
+          "x2": 688,
+          "y2": 160,
+          "stroke": "#2dd4bf",
+          "strokeWidth": 2,
+          "opacity": 80
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 688,
+          "cy": 160,
+          "rx": 3,
+          "ry": 3,
+          "fill": "#ffffff"
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 688,
+          "cy": 160,
+          "rx": 7,
+          "ry": 7,
+          "fill": "#2dd4bf",
+          "opacity": 30
+        },
+        {
+          "command": "add_line",
+          "x1": 733,
+          "y1": 153,
+          "x2": 703,
+          "y2": 123,
+          "stroke": "#2dd4bf",
+          "strokeWidth": 2,
+          "opacity": 80
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 703,
+          "cy": 123,
+          "rx": 3,
+          "ry": 3,
+          "fill": "#ffffff"
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 703,
+          "cy": 123,
+          "rx": 7,
+          "ry": 7,
+          "fill": "#2dd4bf",
+          "opacity": 30
+        },
+        {
+          "command": "add_line",
+          "x1": 740,
+          "y1": 150,
+          "x2": 740,
+          "y2": 108,
+          "stroke": "#2dd4bf",
+          "strokeWidth": 2,
+          "opacity": 80
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 740,
+          "cy": 108,
+          "rx": 3,
+          "ry": 3,
+          "fill": "#ffffff"
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 740,
+          "cy": 108,
+          "rx": 7,
+          "ry": 7,
+          "fill": "#2dd4bf",
+          "opacity": 30
+        },
+        {
+          "command": "add_line",
+          "x1": 747,
+          "y1": 153,
+          "x2": 777,
+          "y2": 123,
+          "stroke": "#2dd4bf",
+          "strokeWidth": 2,
+          "opacity": 80
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 777,
+          "cy": 123,
+          "rx": 3,
+          "ry": 3,
+          "fill": "#ffffff"
+        },
+        {
+          "command": "add_ellipse",
+          "cx": 777,
+          "cy": 123,
+          "rx": 7,
+          "ry": 7,
+          "fill": "#2dd4bf",
+          "opacity": 30
+        },
+
+        // --- CONTAINER BORDER & BRANDING ---
+        {
+          "command": "add_rect",
+          "x": 30,
+          "y": 30,
+          "width": 1140,
+          "height": 570,
+          "fill": "none",
+          "stroke": "#ffffff",
+          "strokeWidth": 1,
+          "rx": 16,
+          "opacity": 12
+        },
+        {
+          "command": "add_text",
+          "x": 80,
+          "y": 75,
+          "width": 500,
+          "height": 25,
+          "text": "THE BROWSER DESIGN CANVAS",
+          "fontSize": 15,
+          "fontFamily": "Outfit",
+          "fontWeight": "bold",
+          "fill": "#fbbf24"
+        },
+        {
+          "command": "add_text",
+          "x": 80,
+          "y": 105,
+          "width": 800,
+          "height": 110,
+          "text": "Pyrotechnic",
+          "fontSize": 96,
+          "fontFamily": "Outfit",
+          "fontWeight": "bold",
+          "fill": "#f8fafc"
+        },
+        {
+          "command": "add_text",
+          "x": 85,
+          "y": 215,
+          "width": 800,
+          "height": 35,
+          "text": "Spiritual successor to Adobe® Fireworks®",
+          "fontSize": 22,
+          "fontFamily": "sans-serif",
+          "fontWeight": "normal",
+          "fill": "#94a3b8"
+        },
+        {
+          "command": "add_line",
+          "x1": 80,
+          "y1": 270,
+          "x2": 500,
+          "y2": 270,
+          "stroke": "#8b5cf6",
+          "strokeWidth": 2,
+          "opacity": 60
+        },
+
+        // --- CORE FEATURE TEXT LIST ---
+        {
+          "command": "add_text",
+          "x": 80,
+          "y": 315,
+          "width": 800,
+          "height": 35,
+          "text": "✓ Design visually, export JSON macros instantly",
+          "fontSize": 22,
+          "fontFamily": "sans-serif",
+          "fontWeight": "normal",
+          "fill": "#cbd5e1"
+        },
+        {
+          "command": "add_text",
+          "x": 80,
+          "y": 365,
+          "width": 800,
+          "height": 35,
+          "text": "✓ Generative AI-friendly JSON macro system",
+          "fontSize": 22,
+          "fontFamily": "sans-serif",
+          "fontWeight": "normal",
+          "fill": "#cbd5e1"
+        },
+        {
+          "command": "add_text",
+          "x": 80,
+          "y": 415,
+          "width": 800,
+          "height": 35,
+          "text": "✓ Vector shapes, arrows, and multi-frame animation",
+          "fontSize": 22,
+          "fontFamily": "sans-serif",
+          "fontWeight": "normal",
+          "fill": "#cbd5e1"
+        },
+        {
+          "command": "add_text",
+          "x": 80,
+          "y": 520,
+          "width": 600,
+          "height": 35,
+          "text": "Created with Pyrotechnic Canvas Engine",
+          "fontSize": 16,
+          "fontFamily": "Outfit",
+          "fontWeight": "normal",
+          "fill": "#64748b"
+        },
+        {
+          "command": "add_text",
+          "x": 800,
+          "y": 518,
+          "width": 320,
+          "height": 35,
+          "text": "Py • Pyrotechnic",
+          "fontSize": 20,
+          "fontFamily": "Outfit",
+          "fontWeight": "bold",
+          "fill": "#fbbf24",
+          "textAlign": "right"
+        },
+        {
+          "command": "add_slice",
+          "x": 0,
+          "y": 0,
+          "width": 1200,
+          "height": 630,
+          "name": "pyrotechnic_ogp",
+          "format": "png"
+        }
       ]
     };
     setMacroText(JSON.stringify(example, null, 2));
@@ -784,27 +1824,6 @@ const MacroPanel: React.FC<MacroPanelProps> = ({ onRunMacro, initialMacroText = 
     };
     setMacroText(JSON.stringify(bouncingBall, null, 2));
     setStatus(null);
-  };
-
-  const handleShareUrl = () => {
-    if (!macroText.trim()) {
-      setStatus({ success: false, message: 'マクロが空です。共有するJSONを入力してください。' });
-      return;
-    }
-    try {
-      // Validate JSON first
-      JSON.parse(macroText);
-      const encoded = btoa(encodeURIComponent(macroText));
-      const url = `${window.location.origin}${window.location.pathname}#macro=${encoded}`;
-      navigator.clipboard.writeText(url).then(() => {
-        setStatus({ success: true, info: true, message: `🔗 URLをクリップボードにコピーしました！\n${url.length > 80 ? url.slice(0, 77) + '...' : url}` });
-      }).catch(() => {
-        // Fallback: display URL for manual copy
-        setStatus({ success: true, info: true, message: `🔗 このURLをコピーしてください:\n${url}` });
-      });
-    } catch (e) {
-      setStatus({ success: false, message: `JSON解析エラー: ${(e as Error).message}` });
-    }
   };
 
   return (
@@ -907,27 +1926,6 @@ const MacroPanel: React.FC<MacroPanelProps> = ({ onRunMacro, initialMacroText = 
         </button>
       </div>
 
-      <button
-        onClick={handleShareUrl}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 5,
-          width: '100%',
-          background: 'transparent',
-          border: '1px solid var(--border-light)',
-          color: 'var(--text-secondary)',
-          borderRadius: 4,
-          padding: '5px 10px',
-          fontSize: '11px',
-          cursor: 'pointer',
-          justifyContent: 'center',
-        }}
-        title="マクロをBase64エンコードしてURLに埋め込み、クリップボードにコピーします"
-      >
-        <Link size={12} /> URLで共有
-      </button>
-
       {status && (
         <div style={{
           display: 'flex',
@@ -950,7 +1948,7 @@ const MacroPanel: React.FC<MacroPanelProps> = ({ onRunMacro, initialMacroText = 
           wordBreak: 'break-all',
         }}>
           {status.info
-            ? <Link size={13} style={{ flexShrink: 0, marginTop: 1 }} />
+            ? <Info size={13} style={{ flexShrink: 0, marginTop: 1 }} />
             : status.success
               ? <CheckCircle size={13} style={{ flexShrink: 0, marginTop: 1 }} />
               : <XCircle size={13} style={{ flexShrink: 0, marginTop: 1 }} />
