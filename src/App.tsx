@@ -924,7 +924,7 @@ export default function App() {
       {/* App Main Top Header */}
       <header className="app-header">
         <div className="logo-section">
-          <div className="logo-icon">Fw</div>
+          <div className="logo-icon">Py</div>
           <span className="logo-title">Pyrotechnic</span>
           <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '8px' }}>
             - spiritual successor of Fireworks

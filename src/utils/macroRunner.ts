@@ -360,15 +360,71 @@ export function runMacro(macro: PyrotechnicMacro, doc: Document): Document {
 }
 
 /**
- * Parses and validates a raw JSON string as a PyrotechnicMacro.
+ * Parses and validates a raw JSON string or Base64 encoded string as a PyrotechnicMacro.
+ * Cleans markdown code blocks, comments, trailing commas, and Unicode spaces.
  * Returns the macro or throws a descriptive error.
  */
 export function parseMacro(jsonString: string): PyrotechnicMacro {
+  let cleaned = jsonString.trim();
+
+  // Normalize Unicode spaces (non-breaking spaces, full-width spaces, zero-width spaces)
+  cleaned = cleaned.replace(/[\u00a0\u200b\u3000]/g, ' ');
+
+  // Strip markdown code fences if present (e.g. ```json ... ```)
+  if (cleaned.startsWith('```')) {
+    cleaned = cleaned.replace(/^```[a-zA-Z]*\s*/, '');
+    cleaned = cleaned.replace(/\s*```$/, '');
+    cleaned = cleaned.trim();
+  }
+
+  // Detect if the pasted string is Base64 (or URL-encoded Base64) instead of raw JSON
+  if (cleaned && !cleaned.startsWith('{') && !cleaned.startsWith('[')) {
+    try {
+      let decoded = atob(cleaned);
+      // If it contains percentage signs, it is likely URL-encoded
+      if (decoded.includes('%')) {
+        decoded = decodeURIComponent(decoded);
+      }
+      const decodedTrimmed = decoded.trim();
+      if (decodedTrimmed.startsWith('{') || decodedTrimmed.startsWith('[')) {
+        cleaned = decodedTrimmed;
+      }
+    } catch {
+      // If it's not base64 or decoding fails, keep the original cleaned string
+    }
+  }
+
+  // Clean JS-style comments and trailing commas to prevent parse errors
+  let jsonForParsing = cleaned;
+  try {
+    // Strip multi-line comments /* ... */
+    jsonForParsing = jsonForParsing.replace(/\/\*[\s\S]*?\*\//g, '');
+    // Strip single-line comments // ... (ignoring double slashes inside URLs)
+    jsonForParsing = jsonForParsing
+      .split('\n')
+      .map(line => {
+        const doubleSlashIndex = line.indexOf('//');
+        if (doubleSlashIndex === -1) return line;
+        const before = line.substring(0, doubleSlashIndex);
+        const quoteCount = (before.match(/"/g) || []).length;
+        if (quoteCount % 2 === 0) {
+          return before;
+        }
+        return line;
+      })
+      .join('\n');
+
+    // Strip trailing commas before closing braces/brackets
+    jsonForParsing = jsonForParsing.replace(/,\s*([\]}])/g, '$1');
+  } catch {
+    jsonForParsing = cleaned;
+  }
+
   let parsed: unknown;
   try {
-    parsed = JSON.parse(jsonString);
+    parsed = JSON.parse(jsonForParsing);
   } catch (e) {
-    throw new Error(`JSON解析エラー: ${(e as Error).message}`);
+    throw new Error(`JSON解析エラー: ${(e as Error).message}\nコピーしたJSONマクロが正しい形式であるかご確認ください。`);
   }
 
   if (typeof parsed !== 'object' || parsed === null) {
