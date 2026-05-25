@@ -465,27 +465,27 @@ export function parseMacro(jsonString: string): PyrotechnicMacro {
   try {
     parsed = JSON.parse(jsonForParsing);
   } catch (e) {
-    throw new Error(`JSON解析エラー: ${(e as Error).message}\nコピーしたJSONマクロが正しい形式であるかご確認ください。`);
+    throw new Error(`JSON parse error: ${(e as Error).message}\nPlease ensure the pasted JSON macro is valid.`);
   }
 
   if (typeof parsed !== 'object' || parsed === null) {
-    throw new Error('マクロのルートはオブジェクトである必要があります。');
+    throw new Error('Macro root must be an object.');
   }
 
   const obj = parsed as Record<string, unknown>;
 
   if (obj.schema !== '1.0') {
-    throw new Error(`"schema" フィールドが "1.0" である必要があります。現在の値: ${JSON.stringify(obj.schema)}`);
+    throw new Error(`"schema" must be "1.0". Got: ${JSON.stringify(obj.schema)}`);
   }
 
   if (!Array.isArray(obj.commands)) {
-    throw new Error('"commands" フィールドが配列である必要があります。');
+    throw new Error('"commands" field must be an array.');
   }
 
   for (let i = 0; i < obj.commands.length; i++) {
     const cmd = obj.commands[i] as Record<string, unknown>;
     if (typeof cmd?.command !== 'string') {
-      throw new Error(`commands[${i}]: "command" フィールドが文字列である必要があります。`);
+      throw new Error(`commands[${i}]: "command" field must be a string.`);
     }
   }
 

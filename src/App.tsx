@@ -814,12 +814,12 @@ export default function App() {
       pushHistory(newDoc);
       return {
         success: true,
-        message: `✓ マクロを実行しました: ${macro.commands.length} コマンド完了${ macro.title ? ` (${macro.title})` : '' }`
+        message: `✓ Macro executed: ${macro.commands.length} command${macro.commands.length !== 1 ? 's' : ''} completed${ macro.title ? ` (${macro.title})` : '' }`
       };
     } catch (e) {
       return {
         success: false,
-        message: `✗ エラー: ${(e as Error).message}`
+        message: `✗ Error: ${(e as Error).message}`
       };
     }
   };
@@ -1016,7 +1016,6 @@ export default function App() {
         <RightPanels
           document={doc}
           setDocument={setDoc}
-          selectedObject={selectedObj}
           selectedObjectIds={selectedObjectIds}
           setSelectedObjectIds={setSelectedObjectIds}
           isPlayingAnimation={isPlayingAnimation}

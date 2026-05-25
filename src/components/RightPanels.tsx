@@ -6,7 +6,6 @@ import {
   Download, 
   Plus, 
   Trash2, 
-  Copy, 
   Eye, 
   EyeOff, 
   Lock, 
@@ -14,7 +13,6 @@ import {
   Play, 
   Pause, 
   RefreshCw,
-  Code,
   Terminal,
   CheckCircle,
   XCircle,
@@ -22,12 +20,10 @@ import {
   Upload
 } from 'lucide-react';
 import type { Document, Page, State, Layer, CanvasObject } from '../types';
-import { generateCSS } from '../utils/canvasHelper';
 
 interface RightPanelsProps {
   document: Document;
   setDocument: React.Dispatch<React.SetStateAction<Document>>;
-  selectedObject: CanvasObject | null;
   selectedObjectIds: string[];
   setSelectedObjectIds: (ids: string[]) => void;
   // Animation state controls
@@ -46,7 +42,6 @@ interface RightPanelsProps {
 export const RightPanels: React.FC<RightPanelsProps> = ({
   document: doc,
   setDocument,
-  selectedObject,
   selectedObjectIds,
   setSelectedObjectIds,
   isPlayingAnimation,
@@ -510,7 +505,7 @@ export const RightPanels: React.FC<RightPanelsProps> = ({
       <div className="sidebar-panel">
         <div className="sidebar-panel-header" onClick={() => toggleCollapse('export')}>
           <span className="sidebar-panel-title">
-            <Download size={16} /> Slice & Code Export
+            <Download size={16} /> Slice Export
           </span>
           <div className="item-actions" onClick={(e) => e.stopPropagation()} style={{ gap: '2px', display: 'flex', alignItems: 'center' }}>
             <button 
@@ -572,35 +567,6 @@ export const RightPanels: React.FC<RightPanelsProps> = ({
               )}
             </div>
 
-            {/* CSS Live Code Panel */}
-            <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: '8px', marginTop: '4px' }}>
-              <span className="control-label" style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
-                <Code size={13} /> CSS Properties (Live)
-              </span>
-              
-              {selectedObject ? (
-                <>
-                  <div className="css-code-panel">
-                    {generateCSS(selectedObject)}
-                  </div>
-                  <button 
-                    className="btn-secondary" 
-                    style={{ width: '100%', marginTop: '6px', justifyContent: 'center' }}
-                    onClick={() => {
-                      navigator.clipboard.writeText(generateCSS(selectedObject));
-                      alert('CSS copied to clipboard!');
-                    }}
-                  >
-                    <Copy size={13} /> Copy CSS Styles
-                  </button>
-                </>
-              ) : (
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                  Select a shape or text element to view automatically generated CSS code.
-                </div>
-              )}
-            </div>
-            
           </div>
         )}
       </div>
@@ -610,12 +576,19 @@ export const RightPanels: React.FC<RightPanelsProps> = ({
         <div className="sidebar-panel-header" onClick={() => toggleCollapse('macro')}>
           <span className="sidebar-panel-title">
             <Terminal size={13} style={{ marginRight: 6 }} />
-            マクロ実行 (Macro Runner)
+            Macro Runner
           </span>
           <span style={{ fontSize: '10px', opacity: 0.5 }}>{collapsed.macro ? '▶' : '▼'}</span>
         </div>
         {!collapsed.macro && (
-          <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{
+            padding: '10px 12px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+            overflowY: 'auto',
+            maxHeight: 'calc(100vh - 320px)',
+          }}>
             <MacroPanel onRunMacro={onRunMacro} document={doc} />
           </div>
         )}
@@ -750,7 +723,7 @@ const MacroPanel: React.FC<MacroPanelProps> = ({ onRunMacro, document: doc }) =>
 
   const handleRun = () => {
     if (!macroText.trim()) {
-      setStatus({ success: false, message: 'マクロが空です。JSONを貼り付けてください。' });
+      setStatus({ success: false, message: 'Macro is empty. Paste a JSON macro to run.' });
       return;
     }
     const result = onRunMacro(macroText);
@@ -768,7 +741,7 @@ const MacroPanel: React.FC<MacroPanelProps> = ({ onRunMacro, document: doc }) =>
       setMacroText(JSON.stringify(parsed, null, 2));
       setStatus(null);
     } catch (e) {
-      setStatus({ success: false, message: `JSON整形エラー: ${(e as Error).message}` });
+      setStatus({ success: false, message: `JSON format error: ${(e as Error).message}` });
     }
   };
 
@@ -776,7 +749,7 @@ const MacroPanel: React.FC<MacroPanelProps> = ({ onRunMacro, document: doc }) =>
     const example = {
       schema: "1.0",
       title: "Pyrotechnic Official OGP Image (with Fireworks)",
-      description: "Pyrotechnicツール自身で作成する、花火装飾つき公式OGPイメージです。",
+      description: "Official OGP image for Pyrotechnic, created with Pyrotechnic itself.",
       commands: [
         {
           command: "set_canvas",
@@ -1944,9 +1917,9 @@ const MacroPanel: React.FC<MacroPanelProps> = ({ onRunMacro, document: doc }) =>
       const macro = documentToMacro(doc);
       const json = JSON.stringify(macro, null, 2);
       setMacroText(json);
-      setStatus({ success: true, message: 'キャンバスをマクロに変換しました。テキストエリアを確認してください。' });
+      setStatus({ success: true, message: 'Canvas exported as macro. Check the text area below.' });
     } catch (e) {
-      setStatus({ success: false, message: `書き出しエラー: ${(e as Error).message}` });
+      setStatus({ success: false, message: `Export error: ${(e as Error).message}` });
     }
   };
 
@@ -1962,16 +1935,16 @@ const MacroPanel: React.FC<MacroPanelProps> = ({ onRunMacro, document: doc }) =>
       a.download = `${page.name.replace(/\s+/g, '_').toLowerCase() || 'macro'}_macro.json`;
       a.click();
       URL.revokeObjectURL(url);
-      setStatus({ success: true, message: 'マクロをダウンロードしました。' });
+      setStatus({ success: true, message: 'Macro downloaded.' });
     } catch (e) {
-      setStatus({ success: false, message: `ダウンロードエラー: ${(e as Error).message}` });
+      setStatus({ success: false, message: `Download error: ${(e as Error).message}` });
     }
   };
 
   return (
     <>
       <div style={{ fontSize: '11px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-        外部AI（ChatGPT・Claude・Gemini等）が生成したJSONマクロをここに貼り付けて実行します。
+        Paste a JSON macro generated by AI (ChatGPT, Claude, Gemini, etc.) and run it.
       </div>
 
       {/* ── Macro Export buttons ── */}
@@ -1983,7 +1956,7 @@ const MacroPanel: React.FC<MacroPanelProps> = ({ onRunMacro, document: doc }) =>
         borderRadius: 6,
       }}>
         <span style={{ fontSize: '10px', color: 'var(--accent-gold)', flex: 1, alignSelf: 'center', fontWeight: 600 }}>
-          📤 キャンバス → マクロ
+          📤 Canvas → Macro
         </span>
         <button
           onClick={handleExportMacro}
@@ -1998,9 +1971,9 @@ const MacroPanel: React.FC<MacroPanelProps> = ({ onRunMacro, document: doc }) =>
             display: 'flex', alignItems: 'center', gap: 3,
             fontWeight: 600,
           }}
-          title="現在のキャンバスをJSONマクロに変換してテキストエリアに展開"
+          title="Convert canvas to JSON macro and load into text area"
         >
-          <Upload size={11} /> 展開
+          <Upload size={11} /> Preview
         </button>
         <button
           onClick={handleDownloadMacro}
@@ -2015,44 +1988,45 @@ const MacroPanel: React.FC<MacroPanelProps> = ({ onRunMacro, document: doc }) =>
             display: 'flex', alignItems: 'center', gap: 3,
             fontWeight: 600,
           }}
-          title="JSONマクロファイルとしてダウンロード"
+          title="Download as JSON macro file"
         >
-          <Download size={11} /> 保存
+          <Download size={11} /> Save
         </button>
       </div>
 
-      <div style={{ display: 'flex', gap: 6 }}>
+      {/* ── Sample buttons ── */}
+      <div style={{ display: 'flex', gap: 4 }}>
         <button
           style={{
             flex: 1,
-            background: 'transparent',
+            background: 'rgba(255,255,255,0.04)',
             border: '1px dashed var(--border-light)',
             color: 'var(--text-secondary)',
             borderRadius: 4,
-            padding: '4px 8px',
+            padding: '4px 6px',
             fontSize: '10px',
             cursor: 'pointer',
-            textAlign: 'left',
           }}
           onClick={handleLoadExample}
+          title="Load OGP image template"
         >
-          📋 OGP画像テンプレート
+          📋 OGP
         </button>
         <button
           style={{
             flex: 1,
-            background: 'transparent',
+            background: 'rgba(255,255,255,0.04)',
             border: '1px dashed var(--border-light)',
             color: 'var(--text-secondary)',
             borderRadius: 4,
-            padding: '4px 8px',
+            padding: '4px 6px',
             fontSize: '10px',
             cursor: 'pointer',
-            textAlign: 'left',
           }}
           onClick={handleLoadBouncingBall}
+          title="Load bouncing ball animation"
         >
-          🏀 弾むボール (アニメ)
+          🏀 Bouncing Ball
         </button>
       </div>
 
@@ -2062,7 +2036,9 @@ const MacroPanel: React.FC<MacroPanelProps> = ({ onRunMacro, document: doc }) =>
         placeholder={'{\n  "schema": "1.0",\n  "commands": [...]\n}'}
         style={{
           width: '100%',
-          height: 200,
+          minHeight: 120,
+          maxHeight: 300,
+          height: macroText ? Math.min(300, Math.max(120, macroText.split('\n').length * 16)) : 120,
           background: 'rgba(0,0,0,0.3)',
           border: '1px solid var(--border-light)',
           borderRadius: 4,
@@ -2074,6 +2050,7 @@ const MacroPanel: React.FC<MacroPanelProps> = ({ onRunMacro, document: doc }) =>
           outline: 'none',
           lineHeight: 1.5,
           boxSizing: 'border-box',
+          flexShrink: 0,
         }}
         spellCheck={false}
         onMouseDown={(e) => e.stopPropagation()}
@@ -2095,23 +2072,23 @@ const MacroPanel: React.FC<MacroPanelProps> = ({ onRunMacro, document: doc }) =>
             fontFamily: 'var(--font-sans)',
           }}
         >
-          ▶ 実行
+          ▶ Run
         </button>
         <button
           onClick={handleFormat}
           className="btn-secondary"
           style={{ fontSize: '11px', padding: '4px 8px' }}
-          title="JSONを整形する"
+          title="Format JSON"
         >
-          整形
+          Format
         </button>
         <button
           onClick={handleClear}
           className="btn-secondary"
           style={{ fontSize: '11px', padding: '4px 8px' }}
-          title="クリア"
+          title="Clear"
         >
-          クリア
+          Clear
         </button>
       </div>
 

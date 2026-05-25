@@ -1377,7 +1377,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
                     className="context-menu-item"
                     onClick={() => {
                       setContextMenu(null);
-                      const input = prompt("スライス領域を外側に広げる（または縮める）ピクセル数を入力してください (例: 10 または -5):", "10");
+                      const input = prompt("Enter pixels to expand (or shrink) the slice region (e.g. 10 or -5):", "10");
                       if (input === null) return;
                       const val = Number(input);
                       if (!isNaN(val)) {
@@ -1405,13 +1405,13 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
                       }
                     }}
                   >
-                    領域の余白調整 (Margin px)...
+                    Adjust margin (px)...
                   </button>
                   <button 
                     className="context-menu-item"
                     onClick={() => {
                       setContextMenu(null);
-                      const input = prompt("スライス領域の比率拡大・縮小パーセンテージを入力してください (例: 150 または 75):", "110");
+                      const input = prompt("Enter scale percentage (e.g. 150 or 75):", "110");
                       if (input === null) return;
                       const val = Number(input);
                       if (!isNaN(val)) {
@@ -1440,13 +1440,13 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
                       }
                     }}
                   >
-                    領域の比率拡大・縮小 (Scale %)...
+                    Scale region (%)...
                   </button>
                   <button 
                     className="context-menu-item"
                     onClick={() => {
                       setContextMenu(null);
-                      const input = prompt("スライス名を変更してください (英数字と-_のみ):", targetObj.name);
+                      const input = prompt("Rename slice (alphanumeric, - and _ only):", targetObj.name);
                       if (input === null) return;
                       const cleanName = input.replace(/[^a-zA-Z0-9_-]/g, '');
                       if (cleanName) {
@@ -1463,7 +1463,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
                       }
                     }}
                   >
-                    スライスの名前変更 (Rename)...
+                    Rename slice...
                   </button>
                   <div className="context-menu-divider" />
                   <button 
@@ -1480,7 +1480,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
                       setSelectedObjectIds([]);
                     }}
                   >
-                    スライスの削除 (Delete)
+                    Delete slice
                   </button>
                 </>
               );
@@ -1507,7 +1507,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
                     });
                   }}
                 >
-                  最前面へ移動 (Bring to Front)
+                  Bring to Front
                 </button>
                 <button 
                   className="context-menu-item"
@@ -1526,7 +1526,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
                     });
                   }}
                 >
-                  最背面へ移動 (Send to Back)
+                  Send to Back
                 </button>
                 <div className="context-menu-divider" />
                 <button 
@@ -1543,7 +1543,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
                     setSelectedObjectIds([]);
                   }}
                 >
-                  オブジェクトを削除 (Delete)
+                  Delete object
                 </button>
               </>
             );
