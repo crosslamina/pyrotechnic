@@ -705,6 +705,87 @@ const MacroPanel: React.FC<MacroPanelProps> = ({ onRunMacro, initialMacroText = 
     setStatus(null);
   };
 
+  const handleLoadBouncingBall = () => {
+    const bouncingBall = {
+      schema: "1.0",
+      title: "Bouncing Ball",
+      description: "Squash & Stretch and motion blur bouncing ball animation",
+      commands: [
+        { command: "clear_all_states" },
+        { command: "set_canvas", width: 800, height: 600 },
+        
+        // Frame 1: Peak
+        { command: "add_rect", x: 0, y: 0, width: 800, height: 600, fill: "#0c0d12" },
+        { command: "add_rect", x: 100, y: 500, width: 600, height: 12, fill: "#3c4159", rx: 6 },
+        { command: "add_ellipse", cx: 400, cy: 140, rx: 25, ry: 25, fill: "#ffc600" },
+
+        // Frame 2: Start falling
+        { command: "add_state", name: "Frame 2", delay: 70 },
+        { command: "add_rect", x: 0, y: 0, width: 800, height: 600, fill: "#0c0d12" },
+        { command: "add_rect", x: 100, y: 500, width: 600, height: 12, fill: "#3c4159", rx: 6 },
+        { command: "add_ellipse", cx: 400, cy: 180, rx: 24, ry: 26, fill: "#ffc600" },
+
+        // Frame 3: Falling faster
+        { command: "add_state", name: "Frame 3", delay: 70 },
+        { command: "add_rect", x: 0, y: 0, width: 800, height: 600, fill: "#0c0d12" },
+        { command: "add_rect", x: 100, y: 500, width: 600, height: 12, fill: "#3c4159", rx: 6 },
+        { command: "add_ellipse", cx: 400, cy: 180, rx: 24, ry: 25, fill: "#ffc600", opacity: 30 },
+        { command: "add_ellipse", cx: 400, cy: 250, rx: 23, ry: 28, fill: "#ffc600" },
+
+        // Frame 4: High speed fall
+        { command: "add_state", name: "Frame 4", delay: 70 },
+        { command: "add_rect", x: 0, y: 0, width: 800, height: 600, fill: "#0c0d12" },
+        { command: "add_rect", x: 100, y: 500, width: 600, height: 12, fill: "#3c4159", rx: 6 },
+        { command: "add_ellipse", cx: 400, cy: 250, rx: 23, ry: 27, fill: "#ffc600", opacity: 20 },
+        { command: "add_ellipse", cx: 400, cy: 300, rx: 22, ry: 28, fill: "#ffc600", opacity: 40 },
+        { command: "add_ellipse", cx: 400, cy: 350, rx: 22, ry: 30, fill: "#ffc600" },
+
+        // Frame 5: Maximum speed fall
+        { command: "add_state", name: "Frame 5", delay: 70 },
+        { command: "add_rect", x: 0, y: 0, width: 800, height: 600, fill: "#0c0d12" },
+        { command: "add_rect", x: 100, y: 500, width: 600, height: 12, fill: "#3c4159", rx: 6 },
+        { command: "add_ellipse", cx: 400, cy: 350, rx: 22, ry: 28, fill: "#ffc600", opacity: 20 },
+        { command: "add_ellipse", cx: 400, cy: 410, rx: 21, ry: 29, fill: "#ffd43f", opacity: 50 },
+        { command: "add_ellipse", cx: 400, cy: 470, rx: 20, ry: 32, fill: "#ffd43f" },
+
+        // Frame 6: IMPACT!
+        { command: "add_state", name: "Frame 6", delay: 70 },
+        { command: "add_rect", x: 0, y: 0, width: 800, height: 600, fill: "#0c0d12" },
+        { command: "add_rect", x: 100, y: 500, width: 600, height: 12, fill: "#3c4159", rx: 6 },
+        { command: "add_ellipse", cx: 400, cy: 490, rx: 34, ry: 14, fill: "#ff9f00" },
+
+        // Frame 7: Rebound launch
+        { command: "add_state", name: "Frame 7", delay: 70 },
+        { command: "add_rect", x: 0, y: 0, width: 800, height: 600, fill: "#0c0d12" },
+        { command: "add_rect", x: 100, y: 500, width: 600, height: 12, fill: "#3c4159", rx: 6 },
+        { command: "add_ellipse", cx: 400, cy: 490, rx: 30, ry: 16, fill: "#ff9f00", opacity: 40 },
+        { command: "add_ellipse", cx: 400, cy: 440, rx: 22, ry: 30, fill: "#ffc600" },
+
+        // Frame 8: Rising fast
+        { command: "add_state", name: "Frame 8", delay: 70 },
+        { command: "add_rect", x: 0, y: 0, width: 800, height: 600, fill: "#0c0d12" },
+        { command: "add_rect", x: 100, y: 500, width: 600, height: 12, fill: "#3c4159", rx: 6 },
+        { command: "add_ellipse", cx: 400, cy: 440, rx: 22, ry: 28, fill: "#ffc600", opacity: 30 },
+        { command: "add_ellipse", cx: 400, cy: 340, rx: 23, ry: 28, fill: "#ffc600" },
+
+        // Frame 9: Decelerating
+        { command: "add_state", name: "Frame 9", delay: 70 },
+        { command: "add_rect", x: 0, y: 0, width: 800, height: 600, fill: "#0c0d12" },
+        { command: "add_rect", x: 100, y: 500, width: 600, height: 12, fill: "#3c4159", rx: 6 },
+        { command: "add_ellipse", cx: 400, cy: 340, rx: 23, ry: 27, fill: "#ffc600", opacity: 20 },
+        { command: "add_ellipse", cx: 400, cy: 240, rx: 24, ry: 26, fill: "#ffc600" },
+
+        // Frame 10: Near peak
+        { command: "add_state", name: "Frame 10", delay: 70 },
+        { command: "add_rect", x: 0, y: 0, width: 800, height: 600, fill: "#0c0d12" },
+        { command: "add_rect", x: 100, y: 500, width: 600, height: 12, fill: "#3c4159", rx: 6 },
+        { command: "add_ellipse", cx: 400, cy: 170, rx: 25, ry: 25, fill: "#ffc600" }
+      ]
+    };
+    setMacroText(JSON.stringify(bouncingBall, null, 2));
+    setStatus(null);
+  };
+
   const handleShareUrl = () => {
     if (!macroText.trim()) {
       setStatus({ success: false, message: 'マクロが空です。共有するJSONを入力してください。' });
@@ -732,21 +813,40 @@ const MacroPanel: React.FC<MacroPanelProps> = ({ onRunMacro, initialMacroText = 
         外部AI（ChatGPT・Claude・Gemini等）が生成したJSONマクロをここに貼り付けて実行します。
       </div>
 
-      <button
-        style={{
-          background: 'transparent',
-          border: '1px dashed var(--border-light)',
-          color: 'var(--text-secondary)',
-          borderRadius: 4,
-          padding: '4px 8px',
-          fontSize: '10px',
-          cursor: 'pointer',
-          textAlign: 'left',
-        }}
-        onClick={handleLoadExample}
-      >
-        📋 サンプルを読み込む (OGP画像テンプレート)
-      </button>
+      <div style={{ display: 'flex', gap: 6 }}>
+        <button
+          style={{
+            flex: 1,
+            background: 'transparent',
+            border: '1px dashed var(--border-light)',
+            color: 'var(--text-secondary)',
+            borderRadius: 4,
+            padding: '4px 8px',
+            fontSize: '10px',
+            cursor: 'pointer',
+            textAlign: 'left',
+          }}
+          onClick={handleLoadExample}
+        >
+          📋 OGP画像テンプレート
+        </button>
+        <button
+          style={{
+            flex: 1,
+            background: 'transparent',
+            border: '1px dashed var(--border-light)',
+            color: 'var(--text-secondary)',
+            borderRadius: 4,
+            padding: '4px 8px',
+            fontSize: '10px',
+            cursor: 'pointer',
+            textAlign: 'left',
+          }}
+          onClick={handleLoadBouncingBall}
+        >
+          🏀 弾むボール (アニメ)
+        </button>
+      </div>
 
       <textarea
         value={macroText}

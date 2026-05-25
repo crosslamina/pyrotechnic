@@ -21,7 +21,9 @@ export type MacroCommand =
   | AddEllipseCommand
   | AddLineCommand
   | AddTextCommand
-  | AddSliceCommand;
+  | AddSliceCommand
+  | AddStateCommand
+  | ClearAllStatesCommand;
 
 export interface SetCanvasCommand {
   command: 'set_canvas';
@@ -122,6 +124,16 @@ export interface AddSliceCommand {
 
 
 
+export interface AddStateCommand {
+  command: 'add_state';
+  name?: string;
+  delay?: number;
+}
+
+export interface ClearAllStatesCommand {
+  command: 'clear_all_states';
+}
+
 export interface PyrotechnicMacro {
   /** Schema version - must be "1.0" */
   schema: '1.0';
@@ -176,11 +188,11 @@ export function runMacro(macro: PyrotechnicMacro, doc: Document): Document {
   const page = result.pages.find(p => p.id === result.currentPageId) || result.pages[0];
   if (!page) throw new Error('No active page found in document.');
 
-  const state: State = page.states.find(s => s.id === result.currentStateId) || page.states[0];
-  if (!state) throw new Error('No active state found on page.');
+  let activeState: State = page.states.find(s => s.id === result.currentStateId) || page.states[0];
+  if (!activeState) throw new Error('No active state found on page.');
 
   // Ensure at least one layer exists
-  if (state.layers.length === 0) {
+  if (activeState.layers.length === 0) {
     const defaultLayer: Layer = {
       id: makeId('layer'),
       name: 'Macro Layer',
@@ -188,10 +200,10 @@ export function runMacro(macro: PyrotechnicMacro, doc: Document): Document {
       locked: false,
       objects: []
     };
-    state.layers.push(defaultLayer);
+    activeState.layers.push(defaultLayer);
   }
 
-  const layer = state.layers[0];
+  let activeLayer = activeState.layers[0];
 
   for (const cmd of macro.commands) {
     switch (cmd.command) {
@@ -205,7 +217,7 @@ export function runMacro(macro: PyrotechnicMacro, doc: Document): Document {
 
       // ── CLEAR CANVAS ────────────────────────────
       case 'clear_canvas': {
-        layer.objects = [];
+        activeLayer.objects = [];
         break;
       }
 
@@ -229,7 +241,7 @@ export function runMacro(macro: PyrotechnicMacro, doc: Document): Document {
           shadowOffsetX: cmd.shadowOffsetX ?? 0,
           shadowOffsetY: cmd.shadowOffsetY ?? 0,
         };
-        layer.objects.push(obj);
+        activeLayer.objects.push(obj);
         break;
       }
 
@@ -252,7 +264,7 @@ export function runMacro(macro: PyrotechnicMacro, doc: Document): Document {
           shadowOffsetX: cmd.shadowOffsetX ?? 0,
           shadowOffsetY: cmd.shadowOffsetY ?? 0,
         };
-        layer.objects.push(obj);
+        activeLayer.objects.push(obj);
         break;
       }
 
@@ -276,7 +288,7 @@ export function runMacro(macro: PyrotechnicMacro, doc: Document): Document {
           arrowStart: cmd.arrowStart,
           arrowEnd: cmd.arrowEnd,
         };
-        layer.objects.push(obj);
+        activeLayer.objects.push(obj);
         break;
       }
 
@@ -303,7 +315,7 @@ export function runMacro(macro: PyrotechnicMacro, doc: Document): Document {
           shadowOffsetX: cmd.shadowOffsetX ?? 0,
           shadowOffsetY: cmd.shadowOffsetY ?? 0,
         };
-        layer.objects.push(obj);
+        activeLayer.objects.push(obj);
         break;
       }
 
@@ -320,7 +332,54 @@ export function runMacro(macro: PyrotechnicMacro, doc: Document): Document {
           format: cmd.format ?? 'png',
           quality: clamp(cmd.quality ?? 90, 1, 100),
         };
-        layer.objects.push(obj);
+        activeLayer.objects.push(obj);
+        break;
+      }
+
+      // ── ADD STATE ───────────────────────────────
+      case 'add_state': {
+        const newStateId = makeId('state');
+        const newState: State = {
+          id: newStateId,
+          name: cmd.name ?? `State ${page.states.length + 1}`,
+          delay: Math.max(10, cmd.delay ?? 100),
+          layers: [
+            {
+              id: makeId('layer'),
+              name: 'Layer 1',
+              visible: true,
+              locked: false,
+              objects: []
+            }
+          ]
+        };
+        page.states.push(newState);
+        activeState = newState;
+        activeLayer = newState.layers[0];
+        break;
+      }
+
+      // ── CLEAR ALL STATES ────────────────────────
+      case 'clear_all_states': {
+        const defaultStateId = makeId('state');
+        const defaultState: State = {
+          id: defaultStateId,
+          name: 'State 1',
+          delay: 100,
+          layers: [
+            {
+              id: makeId('layer'),
+              name: 'Layer 1',
+              visible: true,
+              locked: false,
+              objects: []
+            }
+          ]
+        };
+        page.states = [defaultState];
+        result.currentStateId = defaultStateId;
+        activeState = defaultState;
+        activeLayer = defaultState.layers[0];
         break;
       }
 
@@ -331,6 +390,11 @@ export function runMacro(macro: PyrotechnicMacro, doc: Document): Document {
         console.warn('[MacroRunner] Unknown command:', (cmd as any).command);
       }
     }
+  }
+
+  // Ensure currentStateId points to a valid existing state
+  if (!page.states.some(s => s.id === result.currentStateId)) {
+    result.currentStateId = page.states[0]?.id || '';
   }
 
   return result;
