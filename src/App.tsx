@@ -4,7 +4,9 @@ import {
   Redo2, 
   Trash2, 
   RotateCcw,
-  Sparkles
+  Sparkles,
+  Save,
+  DatabaseZap
 } from 'lucide-react';
 import type { Document, ToolType, CanvasObject, BitmapObject, Page } from './types';
 import { Toolbar } from './components/Toolbar';
@@ -13,6 +15,7 @@ import { PropertiesPanel } from './components/PropertiesPanel';
 import { RightPanels } from './components/RightPanels';
 import { getOrCreateBitmapCanvas, getBoundingBox, drawArrowhead } from './utils/canvasHelper';
 import { parseMacro, runMacro } from './utils/macroRunner';
+import { saveDocument, loadDocument, clearDocument } from './utils/storage';
 
 // Define initial empty document setup
 const createInitialDocument = (): Document => {
@@ -53,6 +56,9 @@ const createInitialDocument = (): Document => {
 
 export default function App() {
   const [doc, setDoc] = useState<Document>(createInitialDocument());
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
+  const saveTimerRef = useRef<number | null>(null);
   const [activeTool, setActiveTool] = useState<ToolType>('pointer');
   
   // Workspace properties
@@ -142,6 +148,55 @@ export default function App() {
       setSelectedObjectIds([]);
     }
   };
+
+  // Clear saved data from IndexedDB and reset
+  const handleClearSaved = async () => {
+    if (window.confirm('Clear saved data from IndexedDB and start fresh?')) {
+      await clearDocument();
+      const freshDoc = createInitialDocument();
+      setDoc(freshDoc);
+      setHistory([freshDoc]);
+      setHistoryIndex(0);
+      setSelectedObjectIds([]);
+      setSaveStatus('unsaved');
+    }
+  };
+
+  // Load document from IndexedDB on mount
+  useEffect(() => {
+    loadDocument().then((saved) => {
+      if (saved) {
+        setDoc(saved);
+        setHistory([saved]);
+        setHistoryIndex(0);
+      }
+    }).catch((err) => {
+      console.warn('IndexedDB load failed:', err);
+    }).finally(() => {
+      setIsLoading(false);
+    });
+  }, []);
+
+  // Auto-save to IndexedDB whenever doc changes (debounced 1s)
+  useEffect(() => {
+    if (isLoading) return;
+    setSaveStatus('unsaved');
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = window.setTimeout(async () => {
+      setSaveStatus('saving');
+      try {
+        await saveDocument(doc);
+        setSaveStatus('saved');
+      } catch (err) {
+        console.warn('IndexedDB save failed:', err);
+        setSaveStatus('unsaved');
+      }
+    }, 1000);
+
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, [doc, isLoading]);
 
   // Nudge selection objects with arrow keys
   const nudgeSelectedObjects = (dx: number, dy: number) => {
@@ -900,6 +955,15 @@ export default function App() {
 
   const selectedObj = getSelectedObject();
 
+  if (isLoading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg-primary)', flexDirection: 'column', gap: '12px' }}>
+        <div className="logo-icon" style={{ fontSize: '28px', width: '56px', height: '56px' }}>Py</div>
+        <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Restoring your project…</span>
+      </div>
+    );
+  }
+
   return (
     <div className="app-container">
       {/* App Main Top Header */}
@@ -943,12 +1007,47 @@ export default function App() {
           
           <div style={{ width: '1px', height: '20px', background: 'var(--border-light)', margin: '0 4px' }} />
 
+          {/* Save status indicator */}
+          <div
+            id="save-status-indicator"
+            title="Auto-save status (IndexedDB)"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              fontSize: '11px',
+              padding: '3px 8px',
+              borderRadius: '6px',
+              background: saveStatus === 'saved' ? 'rgba(34,197,94,0.1)' : saveStatus === 'saving' ? 'rgba(234,179,8,0.1)' : 'rgba(148,163,184,0.08)',
+              color: saveStatus === 'saved' ? '#4ade80' : saveStatus === 'saving' ? '#facc15' : 'var(--text-muted)',
+              transition: 'all 0.3s ease',
+              minWidth: '80px',
+              justifyContent: 'center',
+            }}
+          >
+            {saveStatus === 'saved'   && <><Save size={11} /> Saved</>}
+            {saveStatus === 'saving'  && <><DatabaseZap size={11} /> Saving…</>}
+            {saveStatus === 'unsaved' && <><Save size={11} /> Unsaved</>}
+          </div>
+
+          <div style={{ width: '1px', height: '20px', background: 'var(--border-light)', margin: '0 4px' }} />
+
           <button 
             className="btn-secondary" 
             style={{ padding: '4px 10px', fontSize: '12px' }}
             onClick={handleReset}
           >
             <RotateCcw size={13} /> Reset Layout
+          </button>
+
+          <button
+            id="clear-saved-data-btn"
+            className="btn-secondary"
+            style={{ padding: '4px 10px', fontSize: '12px', color: 'var(--text-muted)' }}
+            onClick={handleClearSaved}
+            title="Clear IndexedDB saved data and start fresh"
+          >
+            <Trash2 size={13} /> Clear Saved
           </button>
         </div>
       </header>
