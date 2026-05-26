@@ -199,4 +199,5 @@ export type EditMode =
   | { type: 'painting'; bufferCanvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D; activeBitmapId: string }
   | { type: 'pen_drawing'; pathId: string }
   | { type: 'editing_text'; objectId: string }
-  | { type: 'moving_objects'; startX: number; startY: number; initialPositions: { id: string; x: number; y: number }[] };
+  | { type: 'marquee_selecting'; startX: number; startY: number; curX: number; curY: number }
+  | { type: 'moving_objects'; startX: number; startY: number; initialPositions: { id: string; initialObject: CanvasObject }[] };

@@ -808,57 +808,112 @@ export default function App() {
     const page = updated.pages.find(p => p.id === updated.currentPageId)!;
     const state = page.states.find(s => s.id === updated.currentStateId)!;
 
+    // Get all selected objects
+    const allActiveObjs = getActiveObjects(updated);
+    const selectedObjs = allActiveObjs.filter(o => selectedObjectIds.includes(o.id));
+    if (selectedObjs.length === 0) return;
+
+    // Calculate group bounding box
+    let groupMinX = Infinity, groupMinY = Infinity;
+    let groupMaxX = -Infinity, groupMaxY = -Infinity;
+    selectedObjs.forEach(o => {
+      const box = getBoundingBox(o);
+      groupMinX = Math.min(groupMinX, box.x);
+      groupMinY = Math.min(groupMinY, box.y);
+      groupMaxX = Math.max(groupMaxX, box.x + box.w);
+      groupMaxY = Math.max(groupMaxY, box.y + box.h);
+    });
+
+    let shiftX = 0;
+    let shiftY = 0;
+    if ('x' in props && props.x !== undefined) {
+      shiftX = Math.round(props.x - groupMinX);
+    }
+    if ('y' in props && props.y !== undefined) {
+      shiftY = Math.round(props.y - groupMinY);
+    }
+
     state.layers.forEach(l => {
       l.objects = l.objects.map(obj => {
         if (selectedObjectIds.includes(obj.id)) {
           const newObj = { ...obj } as any;
-          
+
+          // 1. Shift position if X/Y changed (relative shift)
+          if (shiftX !== 0 || shiftY !== 0) {
+            shiftObject(newObj, shiftX, shiftY);
+          }
+
+          // 2. Update width if changed (absolute scale/set)
           if ('width' in props && props.width !== undefined) {
+            const w = props.width;
             if (obj.type === 'ellipse') {
-              newObj.rx = props.width / 2;
-            } else if (obj.type !== 'line' && obj.type !== 'path') {
-              newObj.width = props.width;
+              newObj.rx = w / 2;
+            } else if (obj.type === 'line') {
+              const currentW = Math.abs(obj.x2 - obj.x1);
+              if (currentW > 0) {
+                const scaleW = w / currentW;
+                if (obj.x2 >= obj.x1) {
+                  newObj.x2 = obj.x1 + (obj.x2 - obj.x1) * scaleW;
+                } else {
+                  newObj.x1 = obj.x2 + (obj.x1 - obj.x2) * scaleW;
+                }
+              } else {
+                newObj.x2 = obj.x1 + w;
+              }
+            } else if (obj.type === 'path') {
+              const box = getBoundingBox(obj);
+              if (box.w > 0) {
+                const scaleW = w / box.w;
+                newObj.points.forEach((pt: any) => {
+                  pt.x = box.x + (pt.x - box.x) * scaleW;
+                  if (pt.cp1x !== undefined) pt.cp1x = box.x + (pt.cp1x - box.x) * scaleW;
+                  if (pt.cp2x !== undefined) pt.cp2x = box.x + (pt.cp2x - box.x) * scaleW;
+                });
+              }
+            } else {
+              newObj.width = w;
             }
           }
-          
+
+          // 3. Update height if changed (absolute scale/set)
           if ('height' in props && props.height !== undefined) {
+            const h = props.height;
             if (obj.type === 'ellipse') {
-              newObj.ry = props.height / 2;
-            } else if (obj.type !== 'line' && obj.type !== 'path') {
-              newObj.height = props.height;
-            }
-          }
-          
-          if ('x' in props && props.x !== undefined) {
-            if (obj.type === 'ellipse') {
-              newObj.cx = props.x + obj.rx;
+              newObj.ry = h / 2;
             } else if (obj.type === 'line') {
-              const dx = props.x - Math.min(obj.x1, obj.x2);
-              newObj.x1 += dx;
-              newObj.x2 += dx;
-            } else if (obj.type !== 'path') {
-              newObj.x = props.x;
+              const currentH = Math.abs(obj.y2 - obj.y1);
+              if (currentH > 0) {
+                const scaleH = h / currentH;
+                if (obj.y2 >= obj.y1) {
+                  newObj.y2 = obj.y1 + (obj.y2 - obj.y1) * scaleH;
+                } else {
+                  newObj.y1 = obj.y2 + (obj.y1 - obj.y2) * scaleH;
+                }
+              } else {
+                newObj.y2 = obj.y1 + h;
+              }
+            } else if (obj.type === 'path') {
+              const box = getBoundingBox(obj);
+              if (box.h > 0) {
+                const scaleH = h / box.h;
+                newObj.points.forEach((pt: any) => {
+                  pt.y = box.y + (pt.y - box.y) * scaleH;
+                  if (pt.cp1y !== undefined) pt.cp1y = box.y + (pt.cp1y - box.y) * scaleH;
+                  if (pt.cp2y !== undefined) pt.cp2y = box.y + (pt.cp2y - box.y) * scaleH;
+                });
+              }
+            } else {
+              newObj.height = h;
             }
           }
-          
-          if ('y' in props && props.y !== undefined) {
-            if (obj.type === 'ellipse') {
-              newObj.cy = props.y + obj.ry;
-            } else if (obj.type === 'line') {
-              const dy = props.y - Math.min(obj.y1, obj.y2);
-              newObj.y1 += dy;
-              newObj.y2 += dy;
-            } else if (obj.type !== 'path') {
-              newObj.y = props.y;
-            }
-          }
-          
+
+          // 4. Update other properties (opacity, color, etc.)
           Object.keys(props).forEach(k => {
             if (k !== 'width' && k !== 'height' && k !== 'x' && k !== 'y') {
               newObj[k] = (props as any)[k];
             }
           });
-          
+
           return newObj as CanvasObject;
         }
         return obj;

@@ -44,6 +44,34 @@ interface CanvasAreaProps {
   activeLayerId: string | null;
 }
 
+const shiftObjectLocal = (obj: any, dx: number, dy: number) => {
+  if ('x' in obj) {
+    obj.x += dx;
+    obj.y += dy;
+  } else if ('cx' in obj && obj.type === 'ellipse') {
+    obj.cx += dx;
+    obj.cy += dy;
+  } else if (obj.type === 'line') {
+    obj.x1 += dx;
+    obj.x2 += dx;
+    obj.y1 += dy;
+    obj.y2 += dy;
+  } else if (obj.type === 'path') {
+    obj.points.forEach((pt: any) => {
+      pt.x += dx;
+      pt.y += dy;
+      if (pt.cp1x !== undefined) {
+        pt.cp1x += dx;
+        pt.cp1y += dy;
+      }
+      if (pt.cp2x !== undefined) {
+        pt.cp2x += dx;
+        pt.cp2y += dy;
+      }
+    });
+  }
+};
+
 export const CanvasArea: React.FC<CanvasAreaProps> = ({
   document: doc,
   setDocument,
@@ -186,8 +214,26 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
       }
       ctx.restore();
     }
+    // Draw marquee selection overlays
+    if (editMode.type === 'marquee_selecting') {
+      ctx.save();
+      ctx.translate(offset.x, offset.y);
+      ctx.scale(zoom, zoom);
+      ctx.fillStyle = 'rgba(59, 130, 246, 0.08)';
+      const x = Math.min(editMode.startX, editMode.curX);
+      const y = Math.min(editMode.startY, editMode.curY);
+      const w = Math.abs(editMode.curX - editMode.startX);
+      const h = Math.abs(editMode.curY - editMode.startY);
+      ctx.fillRect(x, y, w, h);
 
-  }, [doc, zoom, offset, selectedObjectIds, activeTool, tempPoints, smartGuides, renderCount, previewAnimationStateId, textEditState]);
+      ctx.strokeStyle = '#3b82f6';
+      ctx.lineWidth = 1 / zoom;
+      ctx.setLineDash([4 / zoom, 4 / zoom]);
+      ctx.strokeRect(x, y, w, h);
+      ctx.restore();
+    }
+
+  }, [doc, zoom, offset, selectedObjectIds, activeTool, tempPoints, smartGuides, renderCount, previewAnimationStateId, textEditState, editMode]);
 
   // Convert mouse screen coordinates to canvas workspace coordinates
   const getCanvasCoords = (e: React.MouseEvent) => {
@@ -484,28 +530,45 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
       // Perform standard object selection click
       const hit = hitTestObjects(getActiveObjects(doc), coords.x, coords.y, showSlicesOverlay && !lockSlicesOverlay);
       if (hit) {
+        let nextSelectedIds: string[];
         if (e.shiftKey) {
-          // Add to selection
-          setSelectedObjectIds((prev: string[]) => [...prev.filter((id: string) => id !== hit.objectId), hit.objectId]);
+          // Toggle selection (Shift+Click)
+          nextSelectedIds = selectedObjectIds.includes(hit.objectId)
+            ? selectedObjectIds.filter(id => id !== hit.objectId)
+            : [...selectedObjectIds, hit.objectId];
         } else {
-          // Select single
-          setSelectedObjectIds([hit.objectId]);
+          // Select single: if already selected, keep group selection so they can drag move. Otherwise, select only the clicked one.
+          nextSelectedIds = selectedObjectIds.includes(hit.objectId)
+            ? selectedObjectIds
+            : [hit.objectId];
         }
+        setSelectedObjectIds(nextSelectedIds);
 
-        // Setup moving objects mode
-        const selObjs = getActiveObjects(doc).filter(o => [...selectedObjectIds, hit.objectId].includes(o.id));
+        // Setup moving objects mode (only if the clicked object remains selected)
+        if (nextSelectedIds.includes(hit.objectId)) {
+          const selObjs = getActiveObjects(doc).filter(o => nextSelectedIds.includes(o.id));
+          setEditMode({
+            type: 'moving_objects',
+            startX: coords.x,
+            startY: coords.y,
+            initialPositions: selObjs.map(o => ({
+              id: o.id,
+              initialObject: JSON.parse(JSON.stringify(o))
+            }))
+          });
+        }
+      } else {
+        // Clicked on empty space: start marquee selection
+        if (!e.shiftKey) {
+          setSelectedObjectIds([]); // Clear selection if Shift is not held
+        }
         setEditMode({
-          type: 'moving_objects',
+          type: 'marquee_selecting',
           startX: coords.x,
           startY: coords.y,
-          initialPositions: selObjs.map(o => {
-            const box = getBoundingBox(o);
-            return { id: o.id, x: box.x, y: box.y };
-          })
+          curX: coords.x,
+          curY: coords.y
         });
-      } else {
-        // Clear selection
-        setSelectedObjectIds([]);
       }
     }
   };
@@ -762,7 +825,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
       return;
     }
 
-    // 4. OBJECT MOVING WITH ALIGNMENT SNAPPING
+    // 4. OBJECT MOVING WITH ALIGNMENT SNAPPING (RIGID BODY)
     if (editMode.type === 'moving_objects') {
       const dx = coords.x - editMode.startX;
       const dy = coords.y - editMode.startY;
@@ -775,61 +838,71 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
       const otherObjects = getActiveObjects(doc).filter(o => !selectedObjectIds.includes(o.id));
       const activeObjs = getActiveObjects(doc);
 
-      const updates: { [id: string]: Partial<CanvasObject> } = {};
+      // Calculate collective bounding box of the group at initial state
+      let groupMinX = Infinity, groupMinY = Infinity;
+      let groupMaxX = -Infinity, groupMaxY = -Infinity;
+      itemsToSnap.forEach(pos => {
+        const box = getBoundingBox(pos.initialObject);
+        groupMinX = Math.min(groupMinX, box.x);
+        groupMinY = Math.min(groupMinY, box.y);
+        groupMaxX = Math.max(groupMaxX, box.x + box.w);
+        groupMaxY = Math.max(groupMaxY, box.y + box.h);
+      });
+      const groupW = groupMaxX - groupMinX;
+      const groupH = groupMaxY - groupMinY;
 
-      itemsToSnap.forEach(initPos => {
-        const obj = activeObjs.find(o => o.id === initPos.id);
-        if (!obj) return;
+      let targetGroupX = groupMinX + dx;
+      let targetGroupY = groupMinY + dy;
 
-        let targetX = initPos.x + dx;
-        let targetY = initPos.y + dy;
+      const snapThreshold = 6;
+      otherObjects.forEach(other => {
+        const otherBox = getBoundingBox(other);
 
-        // Perform simple grid/edge snapping with other objects
-        const snapThreshold = 6;
-        
-        otherObjects.forEach(other => {
-          const otherBox = getBoundingBox(other);
-          const selfBox = getBoundingBox(obj);
-
-          // X-axis alignment snaps
-          if (Math.abs(targetX - otherBox.x) < snapThreshold) {
-            targetX = otherBox.x;
-            snapX = otherBox.x;
-          } else if (Math.abs((targetX + selfBox.w) - (otherBox.x + otherBox.w)) < snapThreshold) {
-            targetX = otherBox.x + otherBox.w - selfBox.w;
-            snapX = otherBox.x + otherBox.w;
-          }
-
-          // Y-axis alignment snaps
-          if (Math.abs(targetY - otherBox.y) < snapThreshold) {
-            targetY = otherBox.y;
-            snapY = otherBox.y;
-          } else if (Math.abs((targetY + selfBox.h) - (otherBox.y + otherBox.h)) < snapThreshold) {
-            targetY = otherBox.y + otherBox.h - selfBox.h;
-            snapY = otherBox.y + otherBox.h;
-          }
-        });
-
-        // Calculate updated coordinates based on object type
-        const props: any = {};
-        if ('x' in obj) {
-          props.x = Math.round(targetX);
-          props.y = Math.round(targetY);
-        } else if ('cx' in obj && obj.type === 'ellipse') {
-          props.cx = Math.round(targetX + obj.rx);
-          props.cy = Math.round(targetY + obj.ry);
-        } else if (obj.type === 'line') {
-          const lx = Math.min(obj.x1, obj.x2);
-          const ly = Math.min(obj.y1, obj.y2);
-          const shiftX = Math.round(targetX - lx);
-          const shiftY = Math.round(targetY - ly);
-          props.x1 = obj.x1 + shiftX;
-          props.x2 = obj.x2 + shiftX;
-          props.y1 = obj.y1 + shiftY;
-          props.y2 = obj.y2 + shiftY;
+        // Snap group left/right edges to other box left/right edges
+        if (Math.abs(targetGroupX - otherBox.x) < snapThreshold) {
+          targetGroupX = otherBox.x;
+          snapX = otherBox.x;
+        } else if (Math.abs(targetGroupX - (otherBox.x + otherBox.w)) < snapThreshold) {
+          targetGroupX = otherBox.x + otherBox.w;
+          snapX = otherBox.x + otherBox.w;
+        }
+        if (Math.abs((targetGroupX + groupW) - otherBox.x) < snapThreshold) {
+          targetGroupX = otherBox.x - groupW;
+          snapX = otherBox.x;
+        } else if (Math.abs((targetGroupX + groupW) - (otherBox.x + otherBox.w)) < snapThreshold) {
+          targetGroupX = otherBox.x + otherBox.w - groupW;
+          snapX = otherBox.x + otherBox.w;
         }
 
-        updates[obj.id] = props;
+        // Snap group top/bottom edges to other box top/bottom edges
+        if (Math.abs(targetGroupY - otherBox.y) < snapThreshold) {
+          targetGroupY = otherBox.y;
+          snapY = otherBox.y;
+        } else if (Math.abs(targetGroupY - (otherBox.y + otherBox.h)) < snapThreshold) {
+          targetGroupY = otherBox.y + otherBox.h;
+          snapY = otherBox.y + otherBox.h;
+        }
+        if (Math.abs((targetGroupY + groupH) - otherBox.y) < snapThreshold) {
+          targetGroupY = otherBox.y - groupH;
+          snapY = otherBox.y;
+        } else if (Math.abs((targetGroupY + groupH) - (otherBox.y + otherBox.h)) < snapThreshold) {
+          targetGroupY = otherBox.y + otherBox.h - groupH;
+          snapY = otherBox.y + otherBox.h;
+        }
+      });
+
+      const finalShiftX = Math.round(targetGroupX - groupMinX);
+      const finalShiftY = Math.round(targetGroupY - groupMinY);
+
+      const updates: { [id: string]: Partial<CanvasObject> } = {};
+
+      itemsToSnap.forEach(pos => {
+        const obj = activeObjs.find(o => o.id === pos.id);
+        if (!obj) return;
+
+        const shiftedObj = JSON.parse(JSON.stringify(pos.initialObject));
+        shiftObjectLocal(shiftedObj, finalShiftX, finalShiftY);
+        updates[obj.id] = shiftedObj;
       });
 
       updateObjectsInDocumentTemp(updates);
@@ -840,6 +913,20 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
       } else {
         setSmartGuides(null);
       }
+      return;
+    }
+
+    // Marquee selection dragging
+    if (editMode.type === 'marquee_selecting') {
+      setEditMode(prev => {
+        if (prev.type !== 'marquee_selecting') return prev;
+        return {
+          ...prev,
+          curX: coords.x,
+          curY: coords.y
+        };
+      });
+      triggerRender();
       return;
     }
 
@@ -987,6 +1074,48 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
       pushHistory(doc); // Push final drag state to undo history
       setEditMode({ type: 'idle' });
       setSmartGuides(null);
+      return;
+    }
+
+    if (editMode.type === 'marquee_selecting') {
+      const x = Math.min(editMode.startX, editMode.curX);
+      const y = Math.min(editMode.startY, editMode.curY);
+      const w = Math.abs(editMode.curX - editMode.startX);
+      const h = Math.abs(editMode.curY - editMode.startY);
+
+      const intersectingIds: string[] = [];
+      if (w > 0.5 || h > 0.5) { // Only select if drag is non-trivial
+        const activeObjs = getActiveObjects(doc);
+        activeObjs.forEach(obj => {
+          if (obj.type === 'slice' && lockSlicesOverlay) return; // Skip locked slices
+          const objBox = getBoundingBox(obj);
+          const intersects = 
+            x < objBox.x + objBox.w &&
+            x + w > objBox.x &&
+            y < objBox.y + objBox.h &&
+            y + h > objBox.y;
+          if (intersects) {
+            intersectingIds.push(obj.id);
+          }
+        });
+      }
+
+      if (e.shiftKey) {
+        // Toggle selection (Shift-drag adds)
+        setSelectedObjectIds((prev: string[]) => {
+          const next = [...prev];
+          intersectingIds.forEach(id => {
+            if (!next.includes(id)) next.push(id);
+          });
+          return next;
+        });
+      } else {
+        // Set selection
+        setSelectedObjectIds(intersectingIds);
+      }
+
+      setEditMode({ type: 'idle' });
+      triggerRender();
       return;
     }
 
