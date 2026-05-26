@@ -39,6 +39,8 @@ interface RightPanelsProps {
   lockSlicesOverlay: boolean;
   setLockSlicesOverlay: (lock: boolean) => void;
   onRunMacro: (json: string) => { success: boolean; message: string };
+  activeLayerId: string | null;
+  setActiveLayerId: (id: string | null) => void;
 }
 
 export const RightPanels: React.FC<RightPanelsProps> = ({
@@ -55,7 +57,9 @@ export const RightPanels: React.FC<RightPanelsProps> = ({
   setShowSlicesOverlay,
   lockSlicesOverlay,
   setLockSlicesOverlay,
-  onRunMacro
+  onRunMacro,
+  activeLayerId,
+  setActiveLayerId
 }) => {
   // Collapsed states
   const [collapsed, setCollapsed] = useState({
@@ -427,78 +431,88 @@ export const RightPanels: React.FC<RightPanelsProps> = ({
 
         {!collapsed.layers && activeState && (
           <div className="sidebar-panel-content">
-            {activeState.layers.map(layer => (
-              <div key={layer.id} style={{ marginBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '6px' }}>
-                <div 
-                  className="panel-list-item" 
-                  style={{ fontWeight: 600, background: 'rgba(255,255,255,0.02)' }}
-                >
-                  <span className="item-name-section">
-                    <Layers size={13} style={{ color: 'var(--accent-gold)' }} />
-                    {layer.name}
-                  </span>
-                  
-                  <span className="item-actions">
-                    {/* Flatten layer option */}
-                    {layer.objects.length > 0 && (
-                      <button
-                        className="icon-action-btn"
-                        style={{ fontSize: '10px', padding: '1px 4px', width: 'auto' }}
-                        title="Flatten vectors/bitmaps into a single raster bitmap"
-                        onClick={() => onFlattenLayer(layer.id)}
-                      >
-                        <RefreshCw size={11} style={{ marginRight: '2px' }} /> Flat
+            {activeState.layers.map(layer => {
+              const isLayerActive = layer.id === activeLayerId;
+              return (
+                <div key={layer.id} style={{ marginBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '6px' }}>
+                  <div 
+                    className={`panel-list-item ${isLayerActive ? 'selected-active' : ''}`}
+                    style={{ 
+                      fontWeight: 600, 
+                      background: isLayerActive ? 'rgba(234,179,8,0.1)' : 'rgba(255,255,255,0.02)',
+                      border: isLayerActive ? '1px solid var(--accent-gold)' : '1px solid transparent',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => setActiveLayerId(layer.id)}
+                  >
+                    <span className="item-name-section">
+                      <Layers size={13} style={{ color: isLayerActive ? 'var(--accent-gold)' : 'var(--text-secondary)' }} />
+                      {layer.name}
+                      {isLayerActive && <span style={{ fontSize: '9px', color: 'var(--accent-gold)', marginLeft: '4px', fontStyle: 'italic' }}>(Active)</span>}
+                    </span>
+                    
+                    <span className="item-actions" onClick={(e) => e.stopPropagation()}>
+                      {/* Flatten layer option */}
+                      {layer.objects.length > 0 && (
+                        <button
+                          className="icon-action-btn"
+                          style={{ fontSize: '10px', padding: '1px 4px', width: 'auto' }}
+                          title="Flatten vectors/bitmaps into a single raster bitmap"
+                          onClick={() => onFlattenLayer(layer.id)}
+                        >
+                          <RefreshCw size={11} style={{ marginRight: '2px' }} /> Flat
+                        </button>
+                      )}
+                      
+                      <button className="icon-action-btn" onClick={(e) => toggleLayerVisibility(layer.id, e)}>
+                        {layer.visible ? <Eye size={13} /> : <EyeOff size={13} className="text-muted" />}
                       </button>
-                    )}
-                    
-                    <button className="icon-action-btn" onClick={(e) => toggleLayerVisibility(layer.id, e)}>
-                      {layer.visible ? <Eye size={13} /> : <EyeOff size={13} className="text-muted" />}
-                    </button>
-                    
-                    <button className="icon-action-btn" onClick={(e) => toggleLayerLock(layer.id, e)}>
-                      {layer.locked ? <Lock size={13} className="text-gold" /> : <Unlock size={13} />}
-                    </button>
-                    
-                    <button 
-                      className="icon-action-btn" 
-                      disabled={activeState.layers.length <= 1}
-                      onClick={(e) => deleteLayer(layer.id, e)}
-                    >
-                      <Trash2 size={12} className={activeState.layers.length <= 1 ? 'opacity-30' : ''} />
-                    </button>
-                  </span>
-                </div>
-
-                {/* Sub-list of objects inside this layer */}
-                <div style={{ paddingLeft: '16px', marginTop: '2px' }}>
-                  {layer.objects.map(obj => {
-                    const isSelected = selectedObjectIds.includes(obj.id);
-                    return (
-                      <div
-                        key={obj.id}
-                        className={`panel-list-item ${isSelected ? 'active text-gold' : ''}`}
-                        style={{ padding: '3px 6px', fontSize: '12px' }}
-                        onClick={() => setSelectedObjectIds([obj.id])}
+                      
+                      <button className="icon-action-btn" onClick={(e) => toggleLayerLock(layer.id, e)}>
+                        {layer.locked ? <Lock size={13} className="text-gold" /> : <Unlock size={13} />}
+                      </button>
+                      
+                      <button 
+                        className="icon-action-btn" 
+                        disabled={activeState.layers.length <= 1}
+                        onClick={(e) => deleteLayer(layer.id, e)}
                       >
-                        <span className="item-name-section">
-                          <span style={{ fontSize: '9px', textTransform: 'uppercase', background: 'rgba(255,255,255,0.07)', padding: '1px 4px', borderRadius: '3px', color: 'var(--text-secondary)' }}>
-                            {obj.type}
+                        <Trash2 size={12} className={activeState.layers.length <= 1 ? 'opacity-30' : ''} />
+                      </button>
+                    </span>
+                  </div>
+
+                  {/* Sub-list of objects inside this layer */}
+                  <div style={{ paddingLeft: '16px', marginTop: '2px' }}>
+                    {layer.objects.map(obj => {
+                      const isSelected = selectedObjectIds.includes(obj.id);
+                      return (
+                        <div
+                          key={obj.id}
+                          className={`panel-list-item ${isSelected ? 'active text-gold' : ''}`}
+                          style={{ padding: '3px 6px', fontSize: '12px' }}
+                          onClick={() => setSelectedObjectIds([obj.id])}
+                        >
+                          <span className="item-name-section">
+                            <span style={{ fontSize: '9px', textTransform: 'uppercase', background: 'rgba(255,255,255,0.07)', padding: '1px 4px', borderRadius: '3px', color: 'var(--text-secondary)' }}>
+                              {obj.type}
+                            </span>
+                            <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '100px' }}>
+                              {obj.type === 'slice' ? obj.name : obj.type === 'text' ? obj.text.slice(0, 15) : obj.id.slice(0, 8)}
+                            </span>
                           </span>
-                          <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '100px' }}>
-                            {obj.type === 'slice' ? obj.name : obj.type === 'text' ? obj.text.slice(0, 15) : obj.id.slice(0, 8)}
-                          </span>
-                        </span>
+                        </div>
+                      );
+                    })}
+                    {layer.objects.length === 0 && (
+                      <div style={{ padding: '4px 6px', fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                        Layer is empty
                       </div>
-                    );
-                  })}
-                  {layer.objects.length === 0 && (
-                    <div style={{ padding: '4px 6px', fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                      Layer is empty
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

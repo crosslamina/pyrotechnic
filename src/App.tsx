@@ -60,11 +60,25 @@ export default function App() {
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
   const saveTimerRef = useRef<number | null>(null);
   const [activeTool, setActiveTool] = useState<ToolType>('pointer');
+
+  const activePage = doc.pages.find(p => p.id === doc.currentPageId) || doc.pages[0];
+  const activeState = activePage?.states.find(s => s.id === doc.currentStateId) || activePage?.states[0];
   
   // Workspace properties
   const [fillColor, setFillColor] = useState<string>('#3b82f6');
   const [strokeColor, setStrokeColor] = useState<string>('#1e293b');
   const [selectedObjectIds, setSelectedObjectIds] = useState<string[]>([]);
+  const [activeLayerId, setActiveLayerId] = useState<string | null>(null);
+
+  // Sync activeLayerId with current page/state layers
+  useEffect(() => {
+    if (activeState) {
+      const exists = activeState.layers.some(l => l.id === activeLayerId);
+      if (!exists && activeState.layers.length > 0) {
+        setActiveLayerId(activeState.layers[0].id);
+      }
+    }
+  }, [doc.currentPageId, doc.currentStateId, doc, activeLayerId, activeState]);
   
   // Brush/Eraser setups
   const [brushSettings, setBrushSettings] = useState({ size: 10, hardness: 80, opacity: 100, color: '#f59e0b' });
@@ -82,9 +96,6 @@ export default function App() {
   const [zoom, setZoom] = useState<number>(1);
   const [showSlicesOverlay, setShowSlicesOverlay] = useState<boolean>(true);
   const [lockSlicesOverlay, setLockSlicesOverlay] = useState<boolean>(false);
-
-  const activePage = doc.pages.find(p => p.id === doc.currentPageId) || doc.pages[0];
-  const activeState = activePage?.states.find(s => s.id === doc.currentStateId) || activePage?.states[0];
 
   // Helper to push history
   const pushHistory = (updatedDoc: Document) => {
@@ -337,7 +348,7 @@ export default function App() {
         const page = updated.pages.find(p => p.id === updated.currentPageId)!;
         const state = page.states.find(s => s.id === updated.currentStateId)!;
         
-        let layer = state.layers[0];
+        let layer = state.layers.find(l => l.id === activeLayerId) || state.layers[0];
         if (!layer) {
           layer = {
             id: `layer-${Date.now()}`,
@@ -762,6 +773,288 @@ export default function App() {
     pushHistory(updated);
   };
 
+  const shiftObject = (obj: any, dx: number, dy: number) => {
+    if ('x' in obj) {
+      obj.x += dx;
+      obj.y += dy;
+    } else if ('cx' in obj && obj.type === 'ellipse') {
+      obj.cx += dx;
+      obj.cy += dy;
+    } else if (obj.type === 'line') {
+      obj.x1 += dx;
+      obj.x2 += dx;
+      obj.y1 += dy;
+      obj.y2 += dy;
+    } else if (obj.type === 'path') {
+      obj.points.forEach((pt: any) => {
+        pt.x += dx;
+        pt.y += dy;
+        if (pt.cp1x !== undefined) {
+          pt.cp1x += dx;
+          pt.cp1y += dy;
+        }
+        if (pt.cp2x !== undefined) {
+          pt.cp2x += dx;
+          pt.cp2y += dy;
+        }
+      });
+    }
+  };
+
+  const handleUpdateMultipleObjects = (props: Partial<CanvasObject>) => {
+    if (selectedObjectIds.length === 0) return;
+
+    const updated = JSON.parse(JSON.stringify(doc)) as Document;
+    const page = updated.pages.find(p => p.id === updated.currentPageId)!;
+    const state = page.states.find(s => s.id === updated.currentStateId)!;
+
+    state.layers.forEach(l => {
+      l.objects = l.objects.map(obj => {
+        if (selectedObjectIds.includes(obj.id)) {
+          const newObj = { ...obj } as any;
+          
+          if ('width' in props && props.width !== undefined) {
+            if (obj.type === 'ellipse') {
+              newObj.rx = props.width / 2;
+            } else if (obj.type !== 'line' && obj.type !== 'path') {
+              newObj.width = props.width;
+            }
+          }
+          
+          if ('height' in props && props.height !== undefined) {
+            if (obj.type === 'ellipse') {
+              newObj.ry = props.height / 2;
+            } else if (obj.type !== 'line' && obj.type !== 'path') {
+              newObj.height = props.height;
+            }
+          }
+          
+          if ('x' in props && props.x !== undefined) {
+            if (obj.type === 'ellipse') {
+              newObj.cx = props.x + obj.rx;
+            } else if (obj.type === 'line') {
+              const dx = props.x - Math.min(obj.x1, obj.x2);
+              newObj.x1 += dx;
+              newObj.x2 += dx;
+            } else if (obj.type !== 'path') {
+              newObj.x = props.x;
+            }
+          }
+          
+          if ('y' in props && props.y !== undefined) {
+            if (obj.type === 'ellipse') {
+              newObj.cy = props.y + obj.ry;
+            } else if (obj.type === 'line') {
+              const dy = props.y - Math.min(obj.y1, obj.y2);
+              newObj.y1 += dy;
+              newObj.y2 += dy;
+            } else if (obj.type !== 'path') {
+              newObj.y = props.y;
+            }
+          }
+          
+          Object.keys(props).forEach(k => {
+            if (k !== 'width' && k !== 'height' && k !== 'x' && k !== 'y') {
+              newObj[k] = (props as any)[k];
+            }
+          });
+          
+          return newObj as CanvasObject;
+        }
+        return obj;
+      });
+    });
+
+    setDoc(updated);
+    pushHistory(updated);
+  };
+
+  const handleAlign = (alignment: 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom') => {
+    if (selectedObjectIds.length === 0) return;
+
+    const updated = JSON.parse(JSON.stringify(doc)) as Document;
+    const page = updated.pages.find(p => p.id === updated.currentPageId)!;
+    const state = page.states.find(s => s.id === updated.currentStateId)!;
+    
+    const allActiveObjs = getActiveObjects(updated);
+    const selectedObjs = allActiveObjs.filter(o => selectedObjectIds.includes(o.id));
+    if (selectedObjs.length === 0) return;
+
+    const boxes = selectedObjs.map(obj => ({ obj, box: getBoundingBox(obj) }));
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    boxes.forEach(({ box }) => {
+      minX = Math.min(minX, box.x);
+      minY = Math.min(minY, box.y);
+      maxX = Math.max(maxX, box.x + box.w);
+      maxY = Math.max(maxY, box.y + box.h);
+    });
+
+    const alignToPage = selectedObjectIds.length === 1;
+
+    let targetVal = 0;
+    if (alignment === 'left') {
+      targetVal = alignToPage ? 0 : minX;
+    } else if (alignment === 'center') {
+      targetVal = alignToPage ? page.width / 2 : (minX + maxX) / 2;
+    } else if (alignment === 'right') {
+      targetVal = alignToPage ? page.width : maxX;
+    } else if (alignment === 'top') {
+      targetVal = alignToPage ? 0 : minY;
+    } else if (alignment === 'middle') {
+      targetVal = alignToPage ? page.height / 2 : (minY + maxY) / 2;
+    } else if (alignment === 'bottom') {
+      targetVal = alignToPage ? page.height : maxY;
+    }
+
+    state.layers.forEach(l => {
+      l.objects = l.objects.map(obj => {
+        if (selectedObjectIds.includes(obj.id)) {
+          const newObj = { ...obj } as any;
+          const box = getBoundingBox(obj);
+          
+          if (alignment === 'left') {
+            const dx = targetVal - box.x;
+            shiftObject(newObj, dx, 0);
+          } else if (alignment === 'center') {
+            const dx = targetVal - (box.x + box.w / 2);
+            shiftObject(newObj, dx, 0);
+          } else if (alignment === 'right') {
+            const dx = targetVal - (box.x + box.w);
+            shiftObject(newObj, dx, 0);
+          } else if (alignment === 'top') {
+            const dy = targetVal - box.y;
+            shiftObject(newObj, 0, dy);
+          } else if (alignment === 'middle') {
+            const dy = targetVal - (box.y + box.h / 2);
+            shiftObject(newObj, 0, dy);
+          } else if (alignment === 'bottom') {
+            const dy = targetVal - (box.y + box.h);
+            shiftObject(newObj, 0, dy);
+          }
+          return newObj;
+        }
+        return obj;
+      });
+    });
+
+    setDoc(updated);
+    pushHistory(updated);
+  };
+
+  const handleDistribute = (direction: 'horizontal' | 'vertical') => {
+    if (selectedObjectIds.length < 3) return;
+
+    const updated = JSON.parse(JSON.stringify(doc)) as Document;
+    const page = updated.pages.find(p => p.id === updated.currentPageId)!;
+    const state = page.states.find(s => s.id === updated.currentStateId)!;
+
+    const allActiveObjs = getActiveObjects(updated);
+    const selectedObjs = allActiveObjs.filter(o => selectedObjectIds.includes(o.id));
+    if (selectedObjs.length < 3) return;
+
+    const boxes = selectedObjs.map(obj => ({ obj, box: getBoundingBox(obj) }));
+
+    if (direction === 'horizontal') {
+      boxes.sort((a, b) => a.box.x - b.box.x);
+    } else {
+      boxes.sort((a, b) => a.box.y - b.box.y);
+    }
+
+    const first = boxes[0];
+    const last = boxes[boxes.length - 1];
+
+    if (direction === 'horizontal') {
+      const minX = first.box.x;
+      const maxX = last.box.x + last.box.w;
+      const totalAvailableWidth = maxX - minX;
+
+      const spanWidth = totalAvailableWidth - first.box.w - last.box.w;
+      const middleWidths = boxes.slice(1, -1).reduce((sum, item) => sum + item.box.w, 0);
+      const spacing = (spanWidth - middleWidths) / (boxes.length - 1);
+
+      let currentX = minX + first.box.w + spacing;
+      for (let i = 1; i < boxes.length - 1; i++) {
+        const item = boxes[i];
+        const dx = currentX - item.box.x;
+        state.layers.forEach(l => {
+          l.objects.forEach(obj => {
+            if (obj.id === item.obj.id) {
+              shiftObject(obj, dx, 0);
+            }
+          });
+        });
+        currentX += item.box.w + spacing;
+      }
+    } else {
+      const minY = first.box.y;
+      const maxY = last.box.y + last.box.h;
+      const totalAvailableHeight = maxY - minY;
+
+      const spanHeight = totalAvailableHeight - first.box.h - last.box.h;
+      const middleHeights = boxes.slice(1, -1).reduce((sum, item) => sum + item.box.h, 0);
+      const spacing = (spanHeight - middleHeights) / (boxes.length - 1);
+
+      let currentY = minY + first.box.h + spacing;
+      for (let i = 1; i < boxes.length - 1; i++) {
+        const item = boxes[i];
+        const dy = currentY - item.box.y;
+        state.layers.forEach(l => {
+          l.objects.forEach(obj => {
+            if (obj.id === item.obj.id) {
+              shiftObject(obj, 0, dy);
+            }
+          });
+        });
+        currentY += item.box.h + spacing;
+      }
+    }
+
+    setDoc(updated);
+    pushHistory(updated);
+  };
+
+  const handleMatchSize = (dimension: 'width' | 'height') => {
+    if (selectedObjectIds.length <= 1) return;
+
+    const allActiveObjs = getActiveObjects(doc);
+    const primary = allActiveObjs.find(o => o.id === selectedObjectIds[0]);
+    if (!primary) return;
+
+    const primaryBox = getBoundingBox(primary);
+    const targetSize = dimension === 'width' ? primaryBox.w : primaryBox.h;
+
+    const updated = JSON.parse(JSON.stringify(doc)) as Document;
+    const page = updated.pages.find(p => p.id === updated.currentPageId)!;
+    const state = page.states.find(s => s.id === updated.currentStateId)!;
+
+    state.layers.forEach(l => {
+      l.objects = l.objects.map(obj => {
+        if (selectedObjectIds.slice(1).includes(obj.id)) {
+          const newObj = { ...obj } as any;
+          if (dimension === 'width') {
+            if (obj.type === 'ellipse') {
+              newObj.rx = targetSize / 2;
+            } else if (obj.type !== 'line' && obj.type !== 'path') {
+              newObj.width = targetSize;
+            }
+          } else {
+            if (obj.type === 'ellipse') {
+              newObj.ry = targetSize / 2;
+            } else if (obj.type !== 'line' && obj.type !== 'path') {
+              newObj.height = targetSize;
+            }
+          }
+          return newObj;
+        }
+        return obj;
+      });
+    });
+
+    setDoc(updated);
+    pushHistory(updated);
+  };
+
   // Update Page sizes
   const handleUpdateDocumentSize = (w: number, h: number) => {
     mutateDocument(draft => {
@@ -920,6 +1213,7 @@ export default function App() {
             setZoom={setZoom}
             showSlicesOverlay={showSlicesOverlay}
             lockSlicesOverlay={lockSlicesOverlay}
+            activeLayerId={activeLayerId}
           />
 
           {/* Bottom Property Panel inspector */}
@@ -935,6 +1229,10 @@ export default function App() {
             document={doc}
             updateDocumentSize={handleUpdateDocumentSize}
             onCreateSliceFromSelection={handleCreateSliceFromSelection}
+            onAlign={handleAlign}
+            onDistribute={handleDistribute}
+            onMatchSize={handleMatchSize}
+            onUpdateMultipleObjects={handleUpdateMultipleObjects}
           />
         </div>
 
@@ -954,6 +1252,8 @@ export default function App() {
           lockSlicesOverlay={lockSlicesOverlay}
           setLockSlicesOverlay={setLockSlicesOverlay}
           onRunMacro={handleRunMacro}
+          activeLayerId={activeLayerId}
+          setActiveLayerId={setActiveLayerId}
         />
       </div>
     </div>

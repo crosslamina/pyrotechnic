@@ -11,7 +11,8 @@ import type {
   TextObject,
   PathObject,
   BitmapObject,
-  SliceObject
+  SliceObject,
+  State
 } from '../types';
 import { 
   renderDocument, 
@@ -40,6 +41,7 @@ interface CanvasAreaProps {
   setZoom: (z: number) => void;
   showSlicesOverlay: boolean;
   lockSlicesOverlay: boolean;
+  activeLayerId: string | null;
 }
 
 export const CanvasArea: React.FC<CanvasAreaProps> = ({
@@ -59,7 +61,8 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
   zoom,
   setZoom,
   showSlicesOverlay,
-  lockSlicesOverlay
+  lockSlicesOverlay,
+  activeLayerId
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -260,6 +263,10 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
   };
 
 
+  const getTargetLayer = (state: State) => {
+    return state.layers.find(l => l.id === activeLayerId) || state.layers[0];
+  };
+
   // Ensure active bitmap object is created / selected for painting tools
   const ensureActiveBitmapObject = (): { bitmapId: string } => {
     const activeObjs = getActiveObjects(doc);
@@ -286,19 +293,20 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
     mutateDocument(draft => {
       const page = draft.pages.find(p => p.id === draft.currentPageId)!;
       const state = page.states.find(s => s.id === draft.currentStateId)!;
-      const targetLayer = state.layers[0] || {
-        id: `layer-${Date.now()}`,
-        name: 'Layer 1',
-        visible: true,
-        locked: false,
-        objects: []
-      };
       
-      if (state.layers.length === 0) {
+      let targetLayer = state.layers.find(l => l.id === activeLayerId) || state.layers[0];
+      if (!targetLayer) {
+        targetLayer = {
+          id: `layer-${Date.now()}`,
+          name: 'Layer 1',
+          visible: true,
+          locked: false,
+          objects: []
+        };
         state.layers.push(targetLayer);
       }
 
-      // Add to top of layer list
+      // Add to target layer list
       targetLayer.objects.push(newBitmap);
     });
 
@@ -424,7 +432,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
       mutateDocument(draft => {
         const page = draft.pages.find(p => p.id === draft.currentPageId)!;
         const state = page.states.find(s => s.id === draft.currentStateId)!;
-        const layer = state.layers[0];
+        const layer = getTargetLayer(state);
         if (layer) layer.objects.push(newTextObj);
       });
 
@@ -1027,14 +1035,17 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
         mutateDocument(draft => {
           const page = draft.pages.find(p => p.id === draft.currentPageId)!;
           const state = page.states.find(s => s.id === draft.currentStateId)!;
-          const layer = state.layers[0] || {
-            id: `layer-${Date.now()}`,
-            name: 'Layer 1',
-            visible: true,
-            locked: false,
-            objects: []
-          };
-          if (state.layers.length === 0) state.layers.push(layer);
+          let layer = getTargetLayer(state);
+          if (!layer) {
+            layer = {
+              id: `layer-${Date.now()}`,
+              name: 'Layer 1',
+              visible: true,
+              locked: false,
+              objects: []
+            };
+            state.layers.push(layer);
+          }
           
           layer.objects.push(newObj!);
         });
@@ -1079,7 +1090,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
       mutateDocument(draft => {
         const page = draft.pages.find(p => p.id === draft.currentPageId)!;
         const state = page.states.find(s => s.id === draft.currentStateId)!;
-        const layer = state.layers[0];
+        const layer = getTargetLayer(state);
         if (layer) layer.objects.push(newPath);
       });
 
@@ -1125,7 +1136,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
         mutateDocument(draft => {
           const pageActive = draft.pages.find(p => p.id === draft.currentPageId)!;
           const stateActive = pageActive.states.find(s => s.id === draft.currentStateId)!;
-          const activeLayer = stateActive.layers[0];
+          const activeLayer = getTargetLayer(stateActive);
           if (activeLayer) activeLayer.objects.push(newPath);
         });
 
@@ -1487,9 +1498,43 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
             }
 
             // Standard Vector/Bitmap Object actions
+            const currentObjLayer = activeState?.layers.find(l => l.objects.some(o => o.id === targetObj.id));
+            const isDifferentLayer = currentObjLayer && activeLayerId && currentObjLayer.id !== activeLayerId;
+
             return (
               <>
                 <div className="context-menu-header">{targetObj.type.toUpperCase()}: {targetObj.id.split('-')[0]}</div>
+                {isDifferentLayer && (
+                  <button 
+                    className="context-menu-item"
+                    style={{ color: 'var(--accent-gold)', fontWeight: 600 }}
+                    onClick={() => {
+                      setContextMenu(null);
+                      mutateDocumentLocal(draft => {
+                        const page = draft.pages.find(p => p.id === draft.currentPageId)!;
+                        const state = page.states.find(s => s.id === draft.currentStateId)!;
+                        
+                        let foundObj: CanvasObject | null = null;
+                        
+                        // Remove object from its current layer
+                        state.layers.forEach(l => {
+                          const idx = l.objects.findIndex(o => o.id === targetObj.id);
+                          if (idx !== -1) {
+                            [foundObj] = l.objects.splice(idx, 1);
+                          }
+                        });
+                        
+                        // Add to active layer
+                        if (foundObj) {
+                          const destLayer = state.layers.find(l => l.id === activeLayerId) || state.layers[0];
+                          destLayer.objects.push(foundObj);
+                        }
+                      });
+                    }}
+                  >
+                    Move to Active Layer
+                  </button>
+                )}
                 <button 
                   className="context-menu-item"
                   onClick={() => {

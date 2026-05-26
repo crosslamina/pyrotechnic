@@ -263,9 +263,121 @@ body, html, #root {
 
 .properties-body {
   display: flex;
-  align-items: center;
-  gap: 24px;
+  align-items: stretch;
+  gap: 12px;
   flex: 1;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.properties-body::-webkit-scrollbar {
+  height: 4px;
+}
+.properties-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+.properties-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+.properties-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Property card layout for grouped inspector tools */
+.property-card {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.015);
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  height: 84px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.property-card-title {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--accent-gold);
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 2px;
+  margin-bottom: 6px;
+  user-select: none;
+}
+
+.property-card-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+/* Compact layout utilities */
+.grid-2x2 {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: 4px 8px;
+}
+
+.grid-3x2 {
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  gap: 3px;
+}
+
+.input-pair {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.input-pair-label {
+  font-size: 10px;
+  color: var(--text-secondary);
+  font-weight: 700;
+  width: 10px;
+  text-align: right;
+}
+
+.input-pair .control-input {
+  width: 52px;
+  height: 20px;
+  padding: 2px 4px;
+  font-size: 11px;
+}
+
+/* Mini buttons for alignments & actions */
+.btn-mini {
+  padding: 0 5px;
+  height: 20px;
+  min-width: 22px;
+  font-size: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  border-radius: 3px;
+  background: var(--bg-control);
+  border: 1px solid var(--border-light);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.btn-mini:hover {
+  border-color: var(--accent-gold);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.btn-mini.active {
+  background: var(--accent-gold-dim);
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
 }
 
 /* Form Controls & Inputs */
