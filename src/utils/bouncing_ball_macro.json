@@ -5,101 +5,49 @@
   "commands": [
     { "command": "clear_all_states" },
     { "command": "set_canvas", "width": 800, "height": 600 },
-
-    // ─────────────────────────────────────────────
-    // Frame 1: Peak (Slowing down, perfectly round)
-    // ─────────────────────────────────────────────
     { "command": "add_rect", "x": 0, "y": 0, "width": 800, "height": 600, "fill": "#0c0d12" },
     { "command": "add_rect", "x": 100, "y": 500, "width": 600, "height": 12, "fill": "#3c4159", "rx": 6 },
     { "command": "add_ellipse", "cx": 400, "cy": 140, "rx": 25, "ry": 25, "fill": "#ffc600" },
-
-    // ─────────────────────────────────────────────
-    // Frame 2: Start falling (Slightly vertical stretch)
-    // ─────────────────────────────────────────────
     { "command": "add_state", "name": "Frame 2", "delay": 70 },
     { "command": "add_rect", "x": 0, "y": 0, "width": 800, "height": 600, "fill": "#0c0d12" },
     { "command": "add_rect", "x": 100, "y": 500, "width": 600, "height": 12, "fill": "#3c4159", "rx": 6 },
     { "command": "add_ellipse", "cx": 400, "cy": 180, "rx": 24, "ry": 26, "fill": "#ffc600" },
-
-    // ─────────────────────────────────────────────
-    // Frame 3: Falling faster (Stretched, 1st ghost trail)
-    // ─────────────────────────────────────────────
     { "command": "add_state", "name": "Frame 3", "delay": 70 },
     { "command": "add_rect", "x": 0, "y": 0, "width": 800, "height": 600, "fill": "#0c0d12" },
     { "command": "add_rect", "x": 100, "y": 500, "width": 600, "height": 12, "fill": "#3c4159", "rx": 6 },
-    // Motion blur trail
     { "command": "add_ellipse", "cx": 400, "cy": 180, "rx": 24, "ry": 25, "fill": "#ffc600", "opacity": 30 },
-    // Main Ball
     { "command": "add_ellipse", "cx": 400, "cy": 250, "rx": 23, "ry": 28, "fill": "#ffc600" },
-
-    // ─────────────────────────────────────────────
-    // Frame 4: High speed fall (More stretched, 2 trails)
-    // ─────────────────────────────────────────────
     { "command": "add_state", "name": "Frame 4", "delay": 70 },
     { "command": "add_rect", "x": 0, "y": 0, "width": 800, "height": 600, "fill": "#0c0d12" },
     { "command": "add_rect", "x": 100, "y": 500, "width": 600, "height": 12, "fill": "#3c4159", "rx": 6 },
-    // Motion blur trails
     { "command": "add_ellipse", "cx": 400, "cy": 250, "rx": 23, "ry": 27, "fill": "#ffc600", "opacity": 20 },
     { "command": "add_ellipse", "cx": 400, "cy": 300, "rx": 22, "ry": 28, "fill": "#ffc600", "opacity": 40 },
-    // Main Ball
     { "command": "add_ellipse", "cx": 400, "cy": 350, "rx": 22, "ry": 30, "fill": "#ffc600" },
-
-    // ─────────────────────────────────────────────
-    // Frame 5: Maximum speed fall (Very stretched, bright warning color)
-    // ─────────────────────────────────────────────
     { "command": "add_state", "name": "Frame 5", "delay": 70 },
     { "command": "add_rect", "x": 0, "y": 0, "width": 800, "height": 600, "fill": "#0c0d12" },
     { "command": "add_rect", "x": 100, "y": 500, "width": 600, "height": 12, "fill": "#3c4159", "rx": 6 },
-    // Motion blur trails
     { "command": "add_ellipse", "cx": 400, "cy": 350, "rx": 22, "ry": 28, "fill": "#ffc600", "opacity": 20 },
     { "command": "add_ellipse", "cx": 400, "cy": 410, "rx": 21, "ry": 29, "fill": "#ffd43f", "opacity": 50 },
-    // Main Ball
     { "command": "add_ellipse", "cx": 400, "cy": 470, "rx": 20, "ry": 32, "fill": "#ffd43f" },
-
-    // ─────────────────────────────────────────────
-    // Frame 6: IMPACT! (Squashed horizontally, color orange)
-    // ─────────────────────────────────────────────
     { "command": "add_state", "name": "Frame 6", "delay": 70 },
     { "command": "add_rect", "x": 0, "y": 0, "width": 800, "height": 600, "fill": "#0c0d12" },
     { "command": "add_rect", "x": 100, "y": 500, "width": 600, "height": 12, "fill": "#3c4159", "rx": 6 },
     { "command": "add_ellipse", "cx": 400, "cy": 490, "rx": 34, "ry": 14, "fill": "#ff9f00" },
-
-    // ─────────────────────────────────────────────
-    // Frame 7: Rebound launch (Stretched rising, 1 floor trail)
-    // ─────────────────────────────────────────────
     { "command": "add_state", "name": "Frame 7", "delay": 70 },
     { "command": "add_rect", "x": 0, "y": 0, "width": 800, "height": 600, "fill": "#0c0d12" },
     { "command": "add_rect", "x": 100, "y": 500, "width": 600, "height": 12, "fill": "#3c4159", "rx": 6 },
-    // Rebound motion blur trail
     { "command": "add_ellipse", "cx": 400, "cy": 490, "rx": 30, "ry": 16, "fill": "#ff9f00", "opacity": 40 },
-    // Main Ball
     { "command": "add_ellipse", "cx": 400, "cy": 440, "rx": 22, "ry": 30, "fill": "#ffc600" },
-
-    // ─────────────────────────────────────────────
-    // Frame 8: Rising fast (Stretched, 1 trail)
-    // ─────────────────────────────────────────────
     { "command": "add_state", "name": "Frame 8", "delay": 70 },
     { "command": "add_rect", "x": 0, "y": 0, "width": 800, "height": 600, "fill": "#0c0d12" },
     { "command": "add_rect", "x": 100, "y": 500, "width": 600, "height": 12, "fill": "#3c4159", "rx": 6 },
-    // Trail
     { "command": "add_ellipse", "cx": 400, "cy": 440, "rx": 22, "ry": 28, "fill": "#ffc600", "opacity": 30 },
-    // Main Ball
     { "command": "add_ellipse", "cx": 400, "cy": 340, "rx": 23, "ry": 28, "fill": "#ffc600" },
-
-    // ─────────────────────────────────────────────
-    // Frame 9: Decelerating (Almost round)
-    // ─────────────────────────────────────────────
     { "command": "add_state", "name": "Frame 9", "delay": 70 },
     { "command": "add_rect", "x": 0, "y": 0, "width": 800, "height": 600, "fill": "#0c0d12" },
     { "command": "add_rect", "x": 100, "y": 500, "width": 600, "height": 12, "fill": "#3c4159", "rx": 6 },
-    // Trail
     { "command": "add_ellipse", "cx": 400, "cy": 340, "rx": 23, "ry": 27, "fill": "#ffc600", "opacity": 20 },
-    // Main Ball
     { "command": "add_ellipse", "cx": 400, "cy": 240, "rx": 24, "ry": 26, "fill": "#ffc600" },
-
-    // ─────────────────────────────────────────────
-    // Frame 10: Near peak (Slow, round)
-    // ─────────────────────────────────────────────
     { "command": "add_state", "name": "Frame 10", "delay": 70 },
     { "command": "add_rect", "x": 0, "y": 0, "width": 800, "height": 600, "fill": "#0c0d12" },
     { "command": "add_rect", "x": 100, "y": 500, "width": 600, "height": 12, "fill": "#3c4159", "rx": 6 },

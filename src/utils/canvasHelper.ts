@@ -138,7 +138,7 @@ export function renderDocument(
 /**
  * Draws a single vector or bitmap object
  */
-function drawObject(ctx: CanvasRenderingContext2D, obj: CanvasObject, onBitmapLoaded?: () => void) {
+export function drawObject(ctx: CanvasRenderingContext2D, obj: CanvasObject, onBitmapLoaded?: () => void) {
   ctx.save();
 
   // Apply base properties

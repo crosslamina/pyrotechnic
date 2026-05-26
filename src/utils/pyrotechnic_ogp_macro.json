@@ -21,7 +21,6 @@
       "fill": "#05070f"
     },
     
-    // --- SLEEK BACKGROUND GLOWS ---
     {
       "command": "add_ellipse",
       "cx": 300,
@@ -50,7 +49,6 @@
       "opacity": 8
     },
 
-    // --- SUBTLE DESIGN GRID ---
     { "command": "add_line", "x1": 100, "y1": 0, "x2": 100, "y2": 630, "stroke": "#ffffff", "strokeWidth": 1, "opacity": 4 },
     { "command": "add_line", "x1": 200, "y1": 0, "x2": 200, "y2": 630, "stroke": "#ffffff", "strokeWidth": 1, "opacity": 4 },
     { "command": "add_line", "x1": 300, "y1": 0, "x2": 300, "y2": 630, "stroke": "#ffffff", "strokeWidth": 1, "opacity": 4 },
@@ -70,7 +68,6 @@
     { "command": "add_line", "x1": 0, "y1": 500, "x2": 1200, "y2": 500, "stroke": "#ffffff", "strokeWidth": 1, "opacity": 4 },
     { "command": "add_line", "x1": 0, "y1": 600, "x2": 1200, "y2": 600, "stroke": "#ffffff", "strokeWidth": 1, "opacity": 4 },
 
-    // --- GRID INTERSECTION DOTS ---
     { "command": "add_ellipse", "cx": 300, "cy": 200, "rx": 3, "ry": 3, "fill": "#38bdf8", "opacity": 25 },
     { "command": "add_ellipse", "cx": 600, "cy": 200, "rx": 3, "ry": 3, "fill": "#38bdf8", "opacity": 25 },
     { "command": "add_ellipse", "cx": 900, "cy": 200, "rx": 3, "ry": 3, "fill": "#38bdf8", "opacity": 25 },
@@ -78,7 +75,6 @@
     { "command": "add_ellipse", "cx": 600, "cy": 400, "rx": 3, "ry": 3, "fill": "#38bdf8", "opacity": 25 },
     { "command": "add_ellipse", "cx": 900, "cy": 400, "rx": 3, "ry": 3, "fill": "#38bdf8", "opacity": 25 },
 
-    // --- FIREWORKS: GOLD (Center: 920, 220) ---
     {
       "command": "add_ellipse",
       "cx": 920,
@@ -421,7 +417,6 @@
       "opacity": 30
     },
 
-    // --- FIREWORKS: PURPLE (Center: 1050, 390) ---
     {
       "command": "add_ellipse",
       "cx": 1050,
@@ -710,7 +705,6 @@
       "opacity": 30
     },
 
-    // --- FIREWORKS: TEAL (Center: 740, 160) ---
     {
       "command": "add_ellipse",
       "cx": 740,
@@ -945,7 +939,6 @@
       "opacity": 30
     },
 
-    // --- CONTAINER BORDER & BRANDING ---
     {
       "command": "add_rect",
       "x": 30,
@@ -1005,7 +998,6 @@
       "opacity": 60
     },
 
-    // --- CORE FEATURE TEXT LIST ---
     {
       "command": "add_text",
       "x": 80,

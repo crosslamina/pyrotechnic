@@ -13,7 +13,7 @@ import { Toolbar } from './components/Toolbar';
 import { CanvasArea } from './components/CanvasArea';
 import { PropertiesPanel } from './components/PropertiesPanel';
 import { RightPanels } from './components/RightPanels';
-import { getOrCreateBitmapCanvas, getBoundingBox, drawArrowhead } from './utils/canvasHelper';
+import { getOrCreateBitmapCanvas, getBoundingBox, drawArrowhead, drawObject } from './utils/canvasHelper';
 import { parseMacro, runMacro } from './utils/macroRunner';
 import { saveDocument, loadDocument, clearDocument } from './utils/storage';
 
@@ -380,85 +380,8 @@ export default function App() {
 
     // Draw objects of this layer sequentially
     layer.objects.forEach(obj => {
-      // Skip slices
       if (obj.type === 'slice') return;
-      
-      offCtx.save();
-      offCtx.globalAlpha = obj.opacity / 100;
-      
-      // Basic shapes rendering for rasterizing
-      if (obj.type === 'rect') {
-        offCtx.fillStyle = obj.fill === 'none' ? 'transparent' : obj.fill;
-        offCtx.strokeStyle = obj.stroke;
-        offCtx.lineWidth = obj.strokeWidth;
-        offCtx.beginPath();
-        if (obj.rx > 0) offCtx.roundRect(obj.x, obj.y, obj.width, obj.height, obj.rx);
-        else offCtx.rect(obj.x, obj.y, obj.width, obj.height);
-        offCtx.fill();
-        if (obj.strokeWidth > 0) offCtx.stroke();
-      } else if (obj.type === 'ellipse') {
-        offCtx.fillStyle = obj.fill === 'none' ? 'transparent' : obj.fill;
-        offCtx.strokeStyle = obj.stroke;
-        offCtx.lineWidth = obj.strokeWidth;
-        offCtx.beginPath();
-        offCtx.ellipse(obj.cx, obj.cy, obj.rx, obj.ry, 0, 0, 2*Math.PI);
-        offCtx.fill();
-        if (obj.strokeWidth > 0) offCtx.stroke();
-      } else if (obj.type === 'line') {
-        offCtx.strokeStyle = obj.stroke;
-        offCtx.lineWidth = obj.strokeWidth;
-        offCtx.lineCap = 'round';
-
-        const dx = obj.x2 - obj.x1;
-        const dy = obj.y2 - obj.y1;
-        const L = Math.sqrt(dx * dx + dy * dy);
-        let x1Line = obj.x1;
-        let y1Line = obj.y1;
-        let x2Line = obj.x2;
-        let y2Line = obj.y2;
-
-        if (L > 0) {
-          const ux = dx / L;
-          const uy = dy / L;
-          const arrowWidthAngle = Math.PI / 6;
-          const arrowLength = Math.max(10, obj.strokeWidth * 4);
-          const arrowHeight = arrowLength * Math.cos(arrowWidthAngle);
-          let startShorten = obj.arrowStart ? arrowHeight : 0;
-          let endShorten = obj.arrowEnd ? arrowHeight : 0;
-
-          if (startShorten + endShorten > L) {
-            const ratio = L / (startShorten + endShorten);
-            startShorten *= ratio;
-            endShorten *= ratio;
-          }
-
-          x1Line = obj.x1 + ux * startShorten;
-          y1Line = obj.y1 + uy * startShorten;
-          x2Line = obj.x2 - ux * endShorten;
-          y2Line = obj.y2 - uy * endShorten;
-        }
-
-        offCtx.beginPath();
-        offCtx.moveTo(x1Line, y1Line);
-        offCtx.lineTo(x2Line, y2Line);
-        offCtx.stroke();
-
-        if (obj.arrowStart) {
-          drawArrowhead(offCtx, obj.x2, obj.y2, obj.x1, obj.y1, obj.strokeWidth, obj.stroke);
-        }
-        if (obj.arrowEnd) {
-          drawArrowhead(offCtx, obj.x1, obj.y1, obj.x2, obj.y2, obj.strokeWidth, obj.stroke);
-        }
-      } else if (obj.type === 'text') {
-        offCtx.fillStyle = obj.fill;
-        offCtx.font = `${obj.fontStyle} ${obj.fontWeight} ${obj.fontSize}px ${obj.fontFamily}`;
-        offCtx.fillText(obj.text, obj.x, obj.y);
-      } else if (obj.type === 'bitmap') {
-        const bmpCanvas = getOrCreateBitmapCanvas(obj.id, obj.width, obj.height, obj.dataUrl);
-        offCtx.drawImage(bmpCanvas, obj.x, obj.y, obj.width, obj.height);
-      }
-      
-      offCtx.restore();
+      drawObject(offCtx, obj);
     });
 
     // 2. Create the unified bitmap object
