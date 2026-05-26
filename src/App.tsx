@@ -13,7 +13,7 @@ import { Toolbar } from './components/Toolbar';
 import { CanvasArea } from './components/CanvasArea';
 import { PropertiesPanel } from './components/PropertiesPanel';
 import { RightPanels } from './components/RightPanels';
-import { getOrCreateBitmapCanvas, getBoundingBox, drawArrowhead, drawObject } from './utils/canvasHelper';
+import { getBoundingBox, drawObject } from './utils/canvasHelper';
 import { parseMacro, runMacro } from './utils/macroRunner';
 import { saveDocument, loadDocument, clearDocument } from './utils/storage';
 
@@ -584,103 +584,7 @@ export default function App() {
       if (!l.visible) return;
       l.objects.forEach(obj => {
         if (obj.type === 'slice') return;
-        
-        // Custom simple canvas drawing
-        sCtx.save();
-        sCtx.globalAlpha = obj.opacity / 100;
-        
-        if (obj.type === 'rect') {
-          sCtx.fillStyle = obj.fill === 'none' ? 'transparent' : obj.fill;
-          sCtx.strokeStyle = obj.stroke;
-          sCtx.lineWidth = obj.strokeWidth;
-          sCtx.beginPath();
-          if (obj.rx > 0) sCtx.roundRect(obj.x, obj.y, obj.width, obj.height, obj.rx);
-          else sCtx.rect(obj.x, obj.y, obj.width, obj.height);
-          sCtx.fill();
-          if (obj.strokeWidth > 0) sCtx.stroke();
-        } else if (obj.type === 'ellipse') {
-          sCtx.fillStyle = obj.fill === 'none' ? 'transparent' : obj.fill;
-          sCtx.strokeStyle = obj.stroke;
-          sCtx.lineWidth = obj.strokeWidth;
-          sCtx.beginPath();
-          sCtx.ellipse(obj.cx, obj.cy, obj.rx, obj.ry, 0, 0, 2*Math.PI);
-          sCtx.fill();
-          if (obj.strokeWidth > 0) sCtx.stroke();
-        } else if (obj.type === 'line') {
-          sCtx.strokeStyle = obj.stroke;
-          sCtx.lineWidth = obj.strokeWidth;
-          sCtx.lineCap = 'round';
-
-          const dx = obj.x2 - obj.x1;
-          const dy = obj.y2 - obj.y1;
-          const L = Math.sqrt(dx * dx + dy * dy);
-          let x1Line = obj.x1;
-          let y1Line = obj.y1;
-          let x2Line = obj.x2;
-          let y2Line = obj.y2;
-
-          if (L > 0) {
-            const ux = dx / L;
-            const uy = dy / L;
-            const arrowWidthAngle = Math.PI / 6;
-            const arrowLength = Math.max(10, obj.strokeWidth * 4);
-            const arrowHeight = arrowLength * Math.cos(arrowWidthAngle);
-            let startShorten = obj.arrowStart ? arrowHeight : 0;
-            let endShorten = obj.arrowEnd ? arrowHeight : 0;
-
-            if (startShorten + endShorten > L) {
-              const ratio = L / (startShorten + endShorten);
-              startShorten *= ratio;
-              endShorten *= ratio;
-            }
-
-            x1Line = obj.x1 + ux * startShorten;
-            y1Line = obj.y1 + uy * startShorten;
-            x2Line = obj.x2 - ux * endShorten;
-            y2Line = obj.y2 - uy * endShorten;
-          }
-
-          sCtx.beginPath();
-          sCtx.moveTo(x1Line, y1Line);
-          sCtx.lineTo(x2Line, y2Line);
-          sCtx.stroke();
-
-          if (obj.arrowStart) {
-            drawArrowhead(sCtx, obj.x2, obj.y2, obj.x1, obj.y1, obj.strokeWidth, obj.stroke);
-          }
-          if (obj.arrowEnd) {
-            drawArrowhead(sCtx, obj.x1, obj.y1, obj.x2, obj.y2, obj.strokeWidth, obj.stroke);
-          }
-        } else if (obj.type === 'text') {
-          sCtx.fillStyle = obj.fill;
-          sCtx.font = `${obj.fontStyle} ${obj.fontWeight} ${obj.fontSize}px ${obj.fontFamily}`;
-          sCtx.textAlign = obj.textAlign;
-          sCtx.textBaseline = 'top';
-          // Shadow
-          if (obj.shadowBlur > 0 || obj.shadowOffsetX !== 0 || obj.shadowOffsetY !== 0) {
-            sCtx.shadowColor = obj.shadowColor;
-            sCtx.shadowBlur = obj.shadowBlur;
-            sCtx.shadowOffsetX = obj.shadowOffsetX;
-            sCtx.shadowOffsetY = obj.shadowOffsetY;
-          }
-          const textStartX =
-            obj.textAlign === 'left'   ? obj.x :
-            obj.textAlign === 'center' ? obj.x + obj.width / 2 :
-                                         obj.x + obj.width;
-          // Split on newlines and draw each line
-          const exportLines = obj.text.split('\n');
-          exportLines.forEach((line, lineIdx) => {
-            sCtx.fillText(line, textStartX, obj.y + lineIdx * (obj.fontSize * 1.2), obj.width);
-          });
-          sCtx.shadowColor = 'transparent';
-          sCtx.shadowBlur = 0;
-          sCtx.shadowOffsetX = 0;
-          sCtx.shadowOffsetY = 0;
-        } else if (obj.type === 'bitmap') {
-          const bmpCanvas = getOrCreateBitmapCanvas(obj.id, obj.width, obj.height, obj.dataUrl);
-          sCtx.drawImage(bmpCanvas, obj.x, obj.y, obj.width, obj.height);
-        }
-        sCtx.restore();
+        drawObject(sCtx, obj);
       });
     });
 
